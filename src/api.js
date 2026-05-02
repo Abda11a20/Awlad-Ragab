@@ -77,7 +77,7 @@ export const invoicesAPI = {
   create:    (data)   => req(() => http.post('/invoice/create', data)),
   refund:    (id, d)  => req(() => http.put(`/invoice/refund/${id}`, d)),
   delete:    (id)     => req(() => http.delete(`/invoice/delete/${id}`)),
-  getCustomerInvoices: (customerId) => req(() => http.get(`/invoice/customer/${customerId}`)),
+  getCustomerInvoices: (customerId) => req(() => http.get(`/invoice/customer/${customerId}/details`)),
 };
 
 export default http;
