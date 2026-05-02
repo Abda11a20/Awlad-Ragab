@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { customersAPI, invoicesAPI } from '../api';
 import { SkeletonTable, ErrorState, Modal, badgeCls } from '../components/UI';
+import useStore from '../store';
 import { formatCurrency, formatDateTime } from '../utils/format';
 import { ArrowRight, User, Phone, Mail, MapPin, Building, CreditCard, FileText, Activity, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useReactToPrint } from 'react-to-print';
-import InvoicePrintTemplate from '../components/InvoicePrintTemplate';
+import { printInvoice } from '../utils/print';
 
 const STATUS_MAP = {
   paid:    { label: 'مدفوعة',  cls: badgeCls.success },
@@ -39,6 +39,7 @@ export default function CustomerDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [customer, setCustomer] = useState(null);
+  const { invoices } = useStore();
   const [invoiceData, setInvoiceData] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -53,31 +54,15 @@ export default function CustomerDetails() {
     setCurrentInvoice(data?.data);
   };
 
-  // Print State
-  const printRef = useRef();
-  const [invoiceToPrint, setInvoiceToPrint] = useState(null);
-
-  const triggerPrint = useReactToPrint({
-    content: () => printRef.current,
-    onAfterPrint: () => setInvoiceToPrint(null),
-    documentTitle: `invoice-${invoiceToPrint?._id?.slice(-8) || ''}`
-  });
-
-  useEffect(() => {
-    if (invoiceToPrint) {
-      triggerPrint();
-    }
-  }, [invoiceToPrint, triggerPrint]);
-
   const handlePrint = async (invoiceId) => {
-    const toastId = toast.loading('جاري تجهيز الفاتورة للطباعة...');
+    const toastId = toast.loading('جاري تجهيز الفاتورة...');
     const { data, error } = await invoicesAPI.getById(invoiceId);
     if (error) {
       toast.error('فشل تحميل تفاصيل الفاتورة', { id: toastId });
       return;
     }
-    setInvoiceToPrint(data?.data);
-    toast.success('تم التجهيز!', { id: toastId });
+    toast.dismiss(toastId);
+    printInvoice(data?.data);
   };
 
   const loadData = useCallback(async () => {
@@ -93,37 +78,48 @@ export default function CustomerDetails() {
     }
     setCustomer(custData?.data);
 
-    // Fetch ALL invoices and filter for this customer (Since backend route is missing)
-    const { data: allInvData } = await invoicesAPI.getAll();
-    
-    if (allInvData?.data) {
-      const cInvoices = allInvData.data.filter(inv => 
+    let cInvoices = [];
+
+    // Strategy 1: Use specific customer invoices endpoint if it works
+    const { data: invRes } = await invoicesAPI.getCustomerInvoices(id);
+    if (invRes?.data && Array.isArray(invRes.data)) {
+      cInvoices = invRes.data;
+    } 
+    else if (invRes?.data?.invoices && Array.isArray(invRes.data.invoices)) {
+      cInvoices = invRes.data.invoices;
+    } 
+    else {
+      // Strategy 2: Filter from cache or fetch all
+      let allInvoices = invoices;
+      if (allInvoices.length === 0) {
+        const { data: allInvData } = await invoicesAPI.getAll();
+        allInvoices = allInvData?.data || [];
+      }
+      
+      cInvoices = allInvoices.filter(inv => 
         (inv.customerId?._id === id) || (inv.customerId === id)
       );
-
-      const totalAmount = cInvoices.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
-      const totalPaid = cInvoices.reduce((sum, i) => sum + (i.paidAmount || 0), 0);
-      const totalDue = cInvoices.reduce((sum, i) => sum + (i.dueAmount || 0), 0);
-
-      // Create dummy IDs for the list to render correctly since we map over invoiceId instead of _id in the JSX
-      const mappedInvoices = cInvoices.map(i => ({
-        ...i,
-        invoiceId: i._id // Ensure invoiceId exists for the key and handlePrint
-      }));
-
-      setInvoiceData({ 
-        totalInvoices: cInvoices.length, 
-        totalAmount, 
-        totalPaid, 
-        totalDue, 
-        invoices: mappedInvoices 
-      });
-    } else {
-      setInvoiceData({ totalInvoices: 0, totalAmount: 0, totalPaid: 0, totalDue: 0, invoices: [] });
     }
 
+    const totalAmount = cInvoices.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
+    const totalPaid = cInvoices.reduce((sum, i) => sum + (i.paidAmount || 0), 0);
+    const totalDue = cInvoices.reduce((sum, i) => sum + (i.dueAmount || 0), 0);
+
+    const mappedInvoices = cInvoices.map(i => ({
+      ...i,
+      invoiceId: i._id
+    }));
+
+    setInvoiceData({ 
+      totalInvoices: cInvoices.length, 
+      totalAmount, 
+      totalPaid, 
+      totalDue, 
+      invoices: mappedInvoices 
+    });
+
     setLoading(false);
-  }, [id]);
+  }, [id, invoices]);
 
   useEffect(() => {
     loadData();
@@ -436,21 +432,23 @@ export default function CustomerDetails() {
             </div>
 
             {/* Invoice Footer */}
-            <div className="mt-6 pt-6 border-t-2 border-dashed border-slate-300 flex justify-center">
+            <div className="mt-6 pt-6 border-t-2 border-dashed border-slate-300 flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="inline-flex items-center gap-4 bg-white px-6 py-2.5 rounded-full border border-slate-300 shadow-sm">
                 <span className="text-black font-black text-lg">مازن رجب</span>
                 <span className="text-black font-bold">|</span>
                 <span className="text-black font-bold font-mono tracking-widest text-lg" dir="ltr">01025210536 - 01158325071</span>
               </div>
+              <button 
+                onClick={() => printInvoice(currentInvoice)} 
+                className="flex items-center justify-center gap-2 bg-slate-800 text-white px-6 py-2.5 rounded-full font-bold hover:bg-slate-700 transition-colors shadow-sm w-full md:w-auto"
+              >
+                <Printer className="w-5 h-5" />
+                طباعة الفاتورة
+              </button>
             </div>
           </div>
         )}
       </Modal>
-
-      {/* Hidden Print Template */}
-      <div className="print-section hidden print:block absolute top-0 left-0 w-full bg-white z-50">
-        <InvoicePrintTemplate ref={printRef} invoice={invoiceToPrint} />
-      </div>
 
     </div>
   );

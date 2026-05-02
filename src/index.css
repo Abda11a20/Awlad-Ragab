@@ -71,9 +71,4 @@ html { -webkit-text-size-adjust: 100%; }
     padding: 0;
     background: white;
   }
-  
-  /* Hide the rest of the application completely */
-  #root > :not(.print-section) {
-    display: none !important;
-  }
 }

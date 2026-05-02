@@ -116,7 +116,7 @@ export default function Dashboard() {
             >
               <div className="flex items-start justify-between mb-3">
                 <span className="text-2xl">{c.icon}</span>
-                <span className={`text-[10px] font-bold uppercase tracking-widest ${col.text} text-left`}>
+                <span className={`text-xs md:text-sm font-bold ${col.text} text-left`}>
                   {c.label}
                 </span>
               </div>

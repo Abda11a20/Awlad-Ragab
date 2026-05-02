@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { invoicesAPI, productsAPI, customersAPI, default as http } from '../api';
 import useStore from '../store';
 import toast from 'react-hot-toast';
 import { SkeletonTable, EmptyState, ErrorState, Modal, Pagination, SearchableSelect, inputCls, labelCls, badgeCls } from '../components/UI';
 import { formatCurrency, formatDateTime } from '../utils/format';
 import { Plus, Trash2, Undo2, FileText as FileTextIcon, Eye, Printer } from 'lucide-react';
-import { useReactToPrint } from 'react-to-print';
-import InvoicePrintTemplate from '../components/InvoicePrintTemplate';
+import { printInvoice } from '../utils/print';
 
 const PER_PAGE = 10;
 
@@ -51,23 +50,7 @@ export default function Invoices() {
   // Refund Form State
   const [refundItems, setRefundItems] = useState({});
 
-  // Print State
-  const printRef = useRef(null);
-  const [invoiceToPrint, setInvoiceToPrint] = useState(null);
 
-  const triggerPrint = useReactToPrint({
-    contentRef: printRef,
-    onAfterPrint: () => setInvoiceToPrint(null),
-    documentTitle: `invoice-${invoiceToPrint?._id?.slice(-8) || ''}`
-  });
-
-  useEffect(() => {
-    if (invoiceToPrint) {
-      // Small delay to ensure the hidden DOM element is rendered
-      const t = setTimeout(() => triggerPrint(), 100);
-      return () => clearTimeout(t);
-    }
-  }, [invoiceToPrint, triggerPrint]);
 
   const loadData = useCallback(async () => {
     if (invoices.length > 0 && !filterStatus && !filterMethod) {
@@ -197,8 +180,8 @@ export default function Invoices() {
       toast.error('فشل تحميل تفاصيل الفاتورة', { id: toastId });
       return;
     }
-    setInvoiceToPrint(data?.data);
-    toast.success('تم التجهيز!', { id: toastId });
+    toast.dismiss(toastId);
+    printInvoice(data?.data);
   };
 
   const openDetail = async (inv) => {
@@ -595,12 +578,19 @@ export default function Invoices() {
             </div>
 
             {/* Invoice Footer */}
-            <div className="mt-6 pt-6 border-t-2 border-dashed border-slate-300 flex justify-center">
+            <div className="mt-6 pt-6 border-t-2 border-dashed border-slate-300 flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="inline-flex items-center gap-4 bg-white px-6 py-2.5 rounded-full border border-slate-300 shadow-sm">
                 <span className="text-black font-black text-lg">مازن رجب</span>
                 <span className="text-black font-bold">|</span>
                 <span className="text-black font-bold font-mono tracking-widest text-lg" dir="ltr">01025210536 - 01158325071</span>
               </div>
+              <button 
+                onClick={() => printInvoice(currentInvoice)} 
+                className="flex items-center justify-center gap-2 bg-slate-800 text-white px-6 py-2.5 rounded-full font-bold hover:bg-slate-700 transition-colors shadow-sm w-full md:w-auto"
+              >
+                <Printer className="w-5 h-5" />
+                طباعة الفاتورة
+              </button>
             </div>
           </div>
         )}
@@ -644,11 +634,6 @@ export default function Invoices() {
           <br/><br/>هل تريد الاستمرار؟
         </div>
       </Modal>
-
-      {/* Hidden Print Template */}
-      <div className="print-section hidden print:block absolute top-0 left-0 w-full bg-white z-50">
-        <InvoicePrintTemplate ref={printRef} invoice={invoiceToPrint} />
-      </div>
     </>
   );
 }
