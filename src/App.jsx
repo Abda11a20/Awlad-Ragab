@@ -14,7 +14,7 @@ function ProtectedLayout() {
   return (
     <div className="min-h-screen flex">
       <Sidebar />
-      <main className="flex-1 sidebar-offset p-4 pt-16 md:p-6 lg:p-8">
+      <main className="flex-1 min-w-0 sidebar-offset p-4 pt-16 md:p-6 lg:p-8">
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/products" element={<Products />} />
