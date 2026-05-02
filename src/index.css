@@ -48,3 +48,32 @@ html { -webkit-text-size-adjust: 100%; }
 @media (max-width: 767px) {
   .sidebar-offset { margin-right: 0 !important; }
 }
+
+/* === Print Styles === */
+@media print {
+  /* Hide all elements by default in print mode */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Only show elements with the .print-section class */
+  .print-section, .print-section * {
+    visibility: visible;
+  }
+  
+  /* Position the print section at the top left to fill the page */
+  .print-section {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+  
+  /* Hide the rest of the application completely */
+  #root > :not(.print-section) {
+    display: none !important;
+  }
+}

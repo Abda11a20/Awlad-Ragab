@@ -70,6 +70,10 @@ export default function Invoices() {
   }, [invoiceToPrint, triggerPrint]);
 
   const loadData = useCallback(async () => {
+    if (invoices.length > 0 && !filterStatus && !filterMethod) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     let q = [];
@@ -642,7 +646,7 @@ export default function Invoices() {
       </Modal>
 
       {/* Hidden Print Template */}
-      <div style={{ display: 'none' }}>
+      <div className="print-section hidden print:block absolute top-0 left-0 w-full bg-white z-50">
         <InvoicePrintTemplate ref={printRef} invoice={invoiceToPrint} />
       </div>
     </>

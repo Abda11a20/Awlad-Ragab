@@ -1,40 +1,75 @@
-const CACHE = 'mazen-wms-v2';
-const STATIC_ASSETS = ['/'];
+const CACHE_NAME = 'mazen-wms-v3';
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())
+// ملفات static فقط
+const STATIC_ASSETS = [
+  '/',
+  '/index.html'
+];
+
+// install
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener('activate', e => {
-  // Clean up old caches
-  e.waitUntil(
+// activate
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      )
     ).then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', e => {
-  const { request } = e;
-  // Only cache GET requests — POST/PUT/DELETE are NOT cacheable by the Cache API
+// fetch
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+
+  // ❌ تجاهل أي request مش GET
   if (request.method !== 'GET') return;
-  // Skip API calls — always fetch fresh from network
+
+  // ❌ تجاهل API بالكامل
   if (request.url.includes('/api/')) return;
-  // Skip non-http requests (chrome-extension, etc.)
+
+  // ❌ تجاهل أي حاجة مش http
   if (!request.url.startsWith('http')) return;
 
-  e.respondWith(
+  // ✅ كاش فقط للملفات الثابتة
+  const isStatic = request.destination === 'style' ||
+    request.destination === 'script' ||
+    request.destination === 'image' ||
+    request.destination === 'document';
+
+  if (!isStatic) return;
+
+  event.respondWith(
     caches.match(request).then(cached => {
+      // Cache First
       if (cached) return cached;
-      return fetch(request).then(res => {
-        // Only cache successful, non-opaque responses
-        if (!res || res.status !== 200 || res.type === 'opaque') return res;
-        const clone = res.clone();
-        caches.open(CACHE).then(c => c.put(request, clone));
-        return res;
-      });
-    }).catch(() => caches.match('/') || new Response('', { status: 503 }))
+
+      return fetch(request)
+        .then(response => {
+          if (!response || response.status !== 200) return response;
+
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, clone);
+          });
+
+          return response;
+        })
+        .catch(() => {
+          return caches.match('/index.html');
+        });
+    })
   );
 });

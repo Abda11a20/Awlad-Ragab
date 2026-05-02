@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { dashboardAPI } from '../api';
+import useStore from '../store';
 import { SkeletonCards, ErrorState } from '../components/UI';
 import { formatCurrency, formatNumber } from '../utils/format';
 
@@ -26,12 +27,18 @@ const colorMap = {
 };
 
 export default function Dashboard() {
-  const [data, setData]               = useState(null);
+  const { dashboardData, setDashboardData } = useStore();
+  const [data, setData]               = useState(dashboardData);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
   const [activePeriod, setActivePeriod] = useState('monthly');
 
   const loadData = async () => {
+    if (dashboardData) {
+      setData(dashboardData);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     const { data: resData, error: apiError } = await dashboardAPI.getStats();
@@ -39,6 +46,7 @@ export default function Dashboard() {
       setError(apiError || 'فشل تحميل لوحة التحكم');
     } else {
       setData(resData.data);
+      setDashboardData(resData.data);
     }
     setLoading(false);
   };
@@ -52,7 +60,7 @@ export default function Dashboard() {
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">لوحة التحكم</h1>
           <p className="text-sm text-slate-500 mt-1">جاري تحميل الإحصائيات...</p>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <SkeletonCards n={4} />
         </div>
       </>
@@ -97,7 +105,7 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {CARDS.map((c) => {
           const col = colorMap[c.color];
           const value = d[c.key] || 0;

@@ -23,6 +23,10 @@ export default function Products() {
   });
 
   const loadData = useCallback(async (search = '') => {
+    if (products.length > 0 && !search) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     const q = search ? `?name=${encodeURIComponent(search)}` : '';

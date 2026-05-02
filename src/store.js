@@ -52,8 +52,12 @@ const useStore = create((set) => ({
   invoices: [],
   setInvoices: (i) => set({ invoices: i }),
 
+  // ── Dashboard ───────────────────────────────────────────────
+  dashboardData: null,
+  setDashboardData: (d) => set({ dashboardData: d }),
+
   // ── Cache ───────────────────────────────────────────────────
-  clearCache: () => set({ products: [], customers: [], invoices: [] }),
+  clearCache: () => set({ products: [], customers: [], invoices: [], dashboardData: null }),
 }));
 
 export default useStore;

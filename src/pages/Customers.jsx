@@ -28,6 +28,10 @@ export default function Customers() {
   const [formData, setFormData] = useState(initialForm);
 
   const loadData = useCallback(async (search = '') => {
+    if (customers.length > 0 && !search) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     const q = search ? `?name=${encodeURIComponent(search)}` : '';
