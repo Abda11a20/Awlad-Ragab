@@ -107,7 +107,7 @@ export default function CustomerDetails() {
 
     const mappedInvoices = cInvoices.map(i => ({
       ...i,
-      invoiceId: i._id
+      invoiceId: i.invoiceId || i._id
     }));
 
     setInvoiceData({ 
@@ -307,7 +307,7 @@ export default function CustomerDetails() {
                     if (e.target.closest('button') || e.target.closest('a')) return;
                     openDetail(inv);
                   }} className="hover:bg-slate-50 transition-colors cursor-pointer">
-                    <td className="px-5 py-3 font-mono text-slate-600 text-xs">{inv.invoiceId.slice(-6).toUpperCase()}</td>
+                    <td className="px-5 py-3 font-mono text-slate-600 text-xs">{String(inv.invoiceId || inv._id || '').slice(-6).toUpperCase()}</td>
                     <td className="px-5 py-3 font-bold text-slate-700 text-xs">{formatDateTime(inv.createdAt)}</td>
                     <td className="px-5 py-3 text-center">
                       <span className={

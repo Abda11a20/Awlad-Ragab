@@ -11,11 +11,14 @@ export const formatNumber = (num) => {
 };
 
 export const formatDateTime = (dateStr) => {
+  if (!dateStr) return '---';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '---';
   return new Intl.DateTimeFormat('ar-EG', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  }).format(new Date(dateStr));
+  }).format(d);
 };
