@@ -130,21 +130,33 @@ export function printInvoice(invoice) {
 </body>
 </html>`;
 
-  const win = window.open('', '_blank', 'width=900,height=700');
-  if (!win) {
-    alert('يرجى السماح بالنوافذ المنبثقة في المتصفح لتتمكن من الطباعة');
-    return;
-  }
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  win.focus();
+  // Use a hidden iframe instead of a new window for better mobile compatibility
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'absolute';
+  iframe.style.width = '0px';
+  iframe.style.height = '0px';
+  iframe.style.border = 'none';
+  iframe.style.visibility = 'hidden';
+  iframe.style.zIndex = '-1';
+  document.body.appendChild(iframe);
+
+  iframe.contentDocument.open();
+  iframe.contentDocument.write(html);
+  iframe.contentDocument.close();
 
   // Wait for content to render, then print
   setTimeout(() => {
-    try { win.print(); } catch(e) { /* mobile may throw */ }
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch (e) {
+      console.error('Print failed', e);
+    }
+    // Cleanup iframe after print dialog is closed
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 5000);
   }, 600);
-
-  // Auto-close ONLY after print dialog finishes (works on desktop & some mobiles)
-  win.onafterprint = () => win.close();
 }

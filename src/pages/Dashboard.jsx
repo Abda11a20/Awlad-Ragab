@@ -149,8 +149,8 @@ export default function Dashboard() {
           <h3 className="text-sm font-bold text-slate-800">مقارنة الفترات الزمنية</h3>
           <p className="text-xs text-slate-500 mt-0.5">إجمالي المبيعات والتحصيل لكل فترة</p>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-right">
+        <div className="overflow-x-auto pb-4">
+          <table className="w-full min-w-[700px] text-sm text-right">
             <thead className="bg-slate-50 text-slate-500 text-xs border-b border-slate-200">
               <tr>
                 <th className="px-6 py-3">الفترة</th>
