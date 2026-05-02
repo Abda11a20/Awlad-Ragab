@@ -14,7 +14,7 @@ export default function Products() {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [currentId, setCurrentId] = useState(null);
@@ -31,7 +31,7 @@ export default function Products() {
     setError(null);
     const q = search ? `?name=${encodeURIComponent(search)}` : '';
     const { data, error: apiError } = await productsAPI.getAll(q);
-    
+
     // 404 means "no products found" — treat as empty, not an error
     if (apiError && data === null) {
       setProducts([]);
@@ -126,20 +126,20 @@ export default function Products() {
           <Plus className="w-5 h-5" /> إضافة منتج
         </button>
       </div>
-      
+
       <div className="mb-6 flex gap-3">
         <div className="relative w-full max-w-sm">
-          <input 
-            type="search" 
-            placeholder="ابحث باسم المنتج..." 
+          <input
+            type="search"
+            placeholder="ابحث باسم المنتج..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl pl-4 pr-10 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all shadow-sm" 
+            className="w-full bg-white border border-slate-300 text-slate-800 rounded-xl pl-4 pr-10 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition-all shadow-sm"
           />
           <Search className="w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
         </div>
       </div>
-      
+
       {loading ? (
         <SkeletonTable rows={5} cols={4} />
       ) : error ? (
@@ -165,7 +165,7 @@ export default function Products() {
                     <p className="text-sm font-mono font-bold text-slate-700">{formatCurrency(p.unitPrice)}</p>
                   </div>
                   <div className="text-center border-x border-slate-200">
-                    <p className="text-[10px] text-slate-400 font-bold mb-0.5">الكرتونة</p>
+                    <p className="text-[10px] text-slate-400 font-bold mb-0.5">العلبة</p>
                     <p className="text-sm font-mono font-bold text-slate-700">{formatCurrency(p.boxPrice)}</p>
                   </div>
                   <div className="text-center">
@@ -204,7 +204,7 @@ export default function Products() {
                   <th className="px-5 py-4 w-12 text-center">#</th>
                   <th className="px-5 py-4">الاسم</th>
                   <th className="px-5 py-4">سعر الوحدة</th>
-                  <th className="px-5 py-4">سعر الكرتونة</th>
+                  <th className="px-5 py-4">سعر العلبة</th>
                   <th className="px-5 py-4">سعر التجزئة</th>
                   <th className="px-5 py-4 text-center">المخزون</th>
                   <th className="px-5 py-4 text-center">إجراءات</th>
@@ -254,9 +254,9 @@ export default function Products() {
 
       {!loading && !error && <Pagination total={total} page={page} perPage={PER_PAGE} onChange={setPage} />}
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         title={currentId ? 'تعديل منتج' : 'إضافة منتج جديد'}
         onConfirm={handleSave}
         size="modal-lg"
@@ -264,38 +264,38 @@ export default function Products() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <label className={labelCls}>اسم المنتج <span className="text-red-400">*</span></label>
-            <input className={inputCls} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="اسم المنتج..." />
+            <input className={inputCls} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="اسم المنتج..." />
           </div>
           <div className="md:col-span-2">
             <label className={labelCls}>الوصف</label>
-            <input className={inputCls} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="وصف اختياري..." />
+            <input className={inputCls} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="وصف اختياري..." />
           </div>
           <div>
             <label className={labelCls}>سعر القطعة (الوحدة) <span className="text-red-400">*</span></label>
-            <input type="number" className={inputCls} value={formData.unitPrice} onChange={e => setFormData({...formData, unitPrice: e.target.value})} placeholder="0.00" />
+            <input type="number" className={inputCls} value={formData.unitPrice} onChange={e => setFormData({ ...formData, unitPrice: e.target.value })} placeholder="0.00" />
           </div>
           <div>
             <label className={labelCls}>عدد القطع داخل العلبة <span className="text-red-400">*</span></label>
-            <input type="number" className={inputCls} value={formData.unitsPerBox} onChange={e => setFormData({...formData, unitsPerBox: e.target.value})} placeholder="12" />
+            <input type="number" className={inputCls} value={formData.unitsPerBox} onChange={e => setFormData({ ...formData, unitsPerBox: e.target.value })} placeholder="12" />
           </div>
           <div>
             <label className={labelCls}>سعر التجزئة</label>
-            <input type="number" className={inputCls} value={formData.retailPrice} onChange={e => setFormData({...formData, retailPrice: e.target.value})} placeholder="0.00" />
+            <input type="number" className={inputCls} value={formData.retailPrice} onChange={e => setFormData({ ...formData, retailPrice: e.target.value })} placeholder="0.00" />
           </div>
           <div>
             <label className={labelCls}>المخزون (عدد العلب)</label>
-            <input type="number" className={inputCls} value={formData.stockBoxes} onChange={e => setFormData({...formData, stockBoxes: e.target.value})} placeholder="0" />
+            <input type="number" className={inputCls} value={formData.stockBoxes} onChange={e => setFormData({ ...formData, stockBoxes: e.target.value })} placeholder="0" />
           </div>
           <div>
             <label className={labelCls}>المخزون (القطع الفردية المتبقية)</label>
-            <input type="number" className={inputCls} value={formData.stockPieces} onChange={e => setFormData({...formData, stockPieces: e.target.value})} placeholder="0" />
+            <input type="number" className={inputCls} value={formData.stockPieces} onChange={e => setFormData({ ...formData, stockPieces: e.target.value })} placeholder="0" />
           </div>
         </div>
       </Modal>
 
-      <Modal 
-        isOpen={isDeleteOpen} 
-        onClose={() => setIsDeleteOpen(false)} 
+      <Modal
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
         title="حذف منتج"
         onConfirm={handleDelete}
         confirmText="حذف نهائي"
