@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mazen-wms-v3';
+const CACHE_NAME = 'mazen-wms-v4';
 
 // ملفات static فقط
 const STATIC_ASSETS = [
@@ -68,7 +68,12 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          return caches.match('/index.html');
+          // Only return index.html fallback for navigation (document) requests
+          // Never return HTML for scripts/styles as it causes MIME type errors
+          if (request.destination === 'document') {
+            return caches.match('/index.html');
+          }
+          return new Response('', { status: 408 });
         });
     })
   );

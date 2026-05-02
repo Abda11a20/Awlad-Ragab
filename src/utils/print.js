@@ -139,9 +139,12 @@ export function printInvoice(invoice) {
   win.document.write(html);
   win.document.close();
   win.focus();
-  // Small delay to ensure content is fully rendered before print dialog
+
+  // Wait for content to render, then print
   setTimeout(() => {
-    win.print();
-    win.close();
+    try { win.print(); } catch(e) { /* mobile may throw */ }
   }, 600);
+
+  // Auto-close ONLY after print dialog finishes (works on desktop & some mobiles)
+  win.onafterprint = () => win.close();
 }
