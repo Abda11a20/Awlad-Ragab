@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const BASE = import.meta.env.VITE_API_BASE_URL || 'https://mazen-warehouse.vercel.app';
+// In production: use /api (proxied by Vercel → no CORS)
+// In development: use the backend URL directly
+const BASE = import.meta.env.PROD
+  ? '/api'
+  : (import.meta.env.VITE_API_BASE_URL || 'https://mazen-warehouse.vercel.app');
 
 const http = axios.create({
   baseURL: BASE,
