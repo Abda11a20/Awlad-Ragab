@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, FileText, Settings, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Package, Users, FileText, Menu, X, Download, Smartphone } from 'lucide-react';
 import useStore from '../store';
+
 const NAV = [
   { path: '/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
   { path: '/products', label: 'المنتجات', icon: Package },
@@ -9,16 +10,76 @@ const NAV = [
   { path: '/invoices', label: 'الفواتير', icon: FileText },
 ];
 
+// Detect iOS
+const isIOS = () =>
+  /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// Detect if already installed as PWA
+const isInStandaloneMode = () =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true;
+
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { products, logout } = useStore();
+
+  // PWA install state
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [installed, setInstalled] = useState(false);
 
   const lowStockCount = products.filter(p => (p.stock ?? 0) < 10).length;
 
   useEffect(() => {
     setIsOpen(false);
   }, [location]);
+
+  // Listen for the beforeinstallprompt event (Android / Chrome)
+  useEffect(() => {
+    if (isInStandaloneMode()) {
+      setInstalled(true);
+      return;
+    }
+
+    const handler = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    // On iOS, always show the button (manual guide)
+    if (isIOS() && !isInStandaloneMode()) {
+      setShowInstallBtn(true);
+    }
+
+    // Listen for successful install
+    window.addEventListener('appinstalled', () => {
+      setInstalled(true);
+      setShowInstallBtn(false);
+      setInstallPrompt(null);
+    });
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (isIOS()) {
+      // Show iOS manual instructions
+      setShowIOSGuide(true);
+      return;
+    }
+    if (!installPrompt) return;
+    const result = await installPrompt.prompt();
+    if (result?.outcome === 'accepted') {
+      setShowInstallBtn(false);
+      setInstallPrompt(null);
+    }
+  };
 
   return (
     <>
@@ -28,6 +89,46 @@ export default function Sidebar() {
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setIsOpen(false)}
         />
+      )}
+
+      {/* iOS Install Guide Modal */}
+      {showIOSGuide && (
+        <div
+          className="fixed inset-0 z-[600] flex items-end justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowIOSGuide(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-5 mb-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-800 text-base">تثبيت التطبيق على iOS</h3>
+              <button onClick={() => setShowIOSGuide(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-3 text-sm text-slate-600 font-bold">
+              <div className="flex items-start gap-3 bg-slate-50 rounded-xl p-3">
+                <span className="text-xl flex-shrink-0">1️⃣</span>
+                <p>افتح الموقع في <span className="text-blue-600">Safari</span> (ليس Chrome)</p>
+              </div>
+              <div className="flex items-start gap-3 bg-slate-50 rounded-xl p-3">
+                <span className="text-xl flex-shrink-0">2️⃣</span>
+                <p>اضغط على زر <span className="text-blue-600">المشاركة</span> (□↑) في أسفل الشاشة</p>
+              </div>
+              <div className="flex items-start gap-3 bg-slate-50 rounded-xl p-3">
+                <span className="text-xl flex-shrink-0">3️⃣</span>
+                <p>اختر <span className="text-blue-600">"إضافة إلى الشاشة الرئيسية"</span> ثم اضغط إضافة</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowIOSGuide(false)}
+              className="mt-4 w-full bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-emerald-600 transition-colors"
+            >
+              حسناً، فهمت
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Sidebar */}
@@ -76,6 +177,26 @@ export default function Sidebar() {
               </NavLink>
             );
           })}
+
+          {/* PWA Install Button */}
+          {!installed && showInstallBtn && (
+            <button
+              onClick={handleInstall}
+              className="mt-2 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 w-full"
+            >
+              <Download className="w-5 h-5 flex-shrink-0 text-blue-500" />
+              <span className="flex-1 text-right">تثبيت التطبيق</span>
+              <span className="text-[10px] bg-blue-500 text-white rounded-full px-1.5 py-0.5 font-bold">جديد</span>
+            </button>
+          )}
+
+          {/* Already installed indicator */}
+          {installed && (
+            <div className="mt-2 flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold text-emerald-600 bg-emerald-50 border border-emerald-100">
+              <Smartphone className="w-5 h-5 flex-shrink-0 text-emerald-500" />
+              <span className="flex-1 text-right">التطبيق مثبّت ✓</span>
+            </div>
+          )}
         </nav>
 
         {/* Footer */}

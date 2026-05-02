@@ -137,64 +137,115 @@ export default function Products() {
       </div>
       
       {loading ? (
-        <SkeletonTable rows={8} cols={7} />
+        <SkeletonTable rows={5} cols={4} />
       ) : error ? (
         <ErrorState msg={error} onRetry={() => loadData(searchTerm)} />
       ) : products.length === 0 ? (
         <EmptyState msg="لا توجد منتجات" icon="📦" />
       ) : (
-        <div className="rounded-2xl overflow-x-auto border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-right text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
-              <tr>
-                <th className="px-5 py-4 w-12 text-center">#</th>
-                <th className="px-5 py-4">الاسم</th>
-                <th className="px-5 py-4">سعر الوحدة</th>
-                <th className="px-5 py-4">سعر الكرتونة</th>
-                <th className="px-5 py-4">سعر التجزئة</th>
-                <th className="px-5 py-4 text-center">المخزون</th>
-                <th className="px-5 py-4 text-center">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {sliced.map((p, i) => (
-                <tr key={p._id} className="hover:bg-slate-50 transition-colors group">
-                  <td className="px-5 py-4 text-center text-slate-500 font-bold">{(page - 1) * PER_PAGE + i + 1}</td>
-                  <td className="px-5 py-4">
-                    <div className="font-bold text-slate-800">{p.name}</div>
-                    {p.description && <div className="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]">{p.description}</div>}
-                  </td>
-                  <td className="px-5 py-4 text-slate-700 font-mono font-bold">{formatCurrency(p.unitPrice)}</td>
-                  <td className="px-5 py-4 text-slate-700 font-mono font-bold">{formatCurrency(p.boxPrice)}</td>
-                  <td className="px-5 py-4 text-slate-700 font-mono font-bold">{formatCurrency(p.retailPrice)}</td>
-                  <td className="px-5 py-4 text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      {Math.floor(p.stock / p.unitsPerBox) > 0 && (
-                        <span className={`${p.stock < p.unitsPerBox * 2 ? badgeCls.warning : badgeCls.success}`}>
-                          {formatNumber(Math.floor(p.stock / p.unitsPerBox))} علبة
-                        </span>
-                      )}
-                      {(p.stock % p.unitsPerBox) > 0 && (
-                        <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                          {formatNumber(p.stock % p.unitsPerBox)} قطعة
-                        </span>
-                      )}
-                      {p.stock === 0 && (
-                        <span className={badgeCls.danger}>نفد الكمية</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => openEdit(p)} className="text-slate-800 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="تعديل"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => openDelete(p._id)} className="text-slate-800 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </td>
+        <>
+          {/* Mobile Cards View */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {sliced.map((p, i) => (
+              <div key={p._id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-slate-800 text-sm truncate">{p.name}</p>
+                    {p.description && <p className="text-xs text-slate-400 mt-0.5 truncate">{p.description}</p>}
+                  </div>
+                  <span className="text-xs text-slate-400 font-bold mr-2">#{(page - 1) * PER_PAGE + i + 1}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-3 bg-slate-50 rounded-xl p-2.5">
+                  <div className="text-center">
+                    <p className="text-[10px] text-slate-400 font-bold mb-0.5">سعر الوحدة</p>
+                    <p className="text-sm font-mono font-bold text-slate-700">{formatCurrency(p.unitPrice)}</p>
+                  </div>
+                  <div className="text-center border-x border-slate-200">
+                    <p className="text-[10px] text-slate-400 font-bold mb-0.5">الكرتونة</p>
+                    <p className="text-sm font-mono font-bold text-slate-700">{formatCurrency(p.boxPrice)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-slate-400 font-bold mb-0.5">التجزئة</p>
+                    <p className="text-sm font-mono font-bold text-slate-700">{formatCurrency(p.retailPrice)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap gap-1">
+                    {Math.floor(p.stock / p.unitsPerBox) > 0 && (
+                      <span className={`${p.stock < p.unitsPerBox * 2 ? badgeCls.warning : badgeCls.success}`}>
+                        {formatNumber(Math.floor(p.stock / p.unitsPerBox))} علبة
+                      </span>
+                    )}
+                    {(p.stock % p.unitsPerBox) > 0 && (
+                      <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        {formatNumber(p.stock % p.unitsPerBox)} قطعة
+                      </span>
+                    )}
+                    {p.stock === 0 && <span className={badgeCls.danger}>نفد الكمية</span>}
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => openEdit(p)} className="text-slate-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="تعديل"><Edit2 className="w-4 h-4" /></button>
+                    <button onClick={() => openDelete(p._id)} className="text-slate-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-2xl overflow-x-auto border border-slate-200 bg-white shadow-sm">
+            <table className="w-full text-right text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                <tr>
+                  <th className="px-5 py-4 w-12 text-center">#</th>
+                  <th className="px-5 py-4">الاسم</th>
+                  <th className="px-5 py-4">سعر الوحدة</th>
+                  <th className="px-5 py-4">سعر الكرتونة</th>
+                  <th className="px-5 py-4">سعر التجزئة</th>
+                  <th className="px-5 py-4 text-center">المخزون</th>
+                  <th className="px-5 py-4 text-center">إجراءات</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sliced.map((p, i) => (
+                  <tr key={p._id} className="hover:bg-slate-50 transition-colors group">
+                    <td className="px-5 py-4 text-center text-slate-500 font-bold">{(page - 1) * PER_PAGE + i + 1}</td>
+                    <td className="px-5 py-4">
+                      <div className="font-bold text-slate-800">{p.name}</div>
+                      {p.description && <div className="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]">{p.description}</div>}
+                    </td>
+                    <td className="px-5 py-4 text-slate-700 font-mono font-bold">{formatCurrency(p.unitPrice)}</td>
+                    <td className="px-5 py-4 text-slate-700 font-mono font-bold">{formatCurrency(p.boxPrice)}</td>
+                    <td className="px-5 py-4 text-slate-700 font-mono font-bold">{formatCurrency(p.retailPrice)}</td>
+                    <td className="px-5 py-4 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        {Math.floor(p.stock / p.unitsPerBox) > 0 && (
+                          <span className={`${p.stock < p.unitsPerBox * 2 ? badgeCls.warning : badgeCls.success}`}>
+                            {formatNumber(Math.floor(p.stock / p.unitsPerBox))} علبة
+                          </span>
+                        )}
+                        {(p.stock % p.unitsPerBox) > 0 && (
+                          <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            {formatNumber(p.stock % p.unitsPerBox)} قطعة
+                          </span>
+                        )}
+                        {p.stock === 0 && (
+                          <span className={badgeCls.danger}>نفد الكمية</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => openEdit(p)} className="text-slate-800 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="تعديل"><Edit2 className="w-4 h-4" /></button>
+                        <button onClick={() => openDelete(p._id)} className="text-slate-800 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {!loading && !error && <Pagination total={total} page={page} perPage={PER_PAGE} onChange={setPage} />}

@@ -19,7 +19,32 @@
 .badge-pulse { animation: pulse-badge 2s infinite; }
 .chart-wrap { position: relative; height: 240px; }
 .credit-fill { transition: width 0.5s ease; }
+
+/* Sidebar offset: only on md+ */
 @media (min-width: 768px) { .sidebar-offset { margin-right: 260px; } }
+
+/* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(100,116,139,.4); border-radius: 99px; }
+
+/* === Mobile / PWA Improvements === */
+
+/* Prevent horizontal overflow on mobile */
+html, body { overflow-x: hidden; }
+
+/* iOS safe area support for PWA standalone mode */
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Smooth scrolling */
+html { scroll-behavior: smooth; }
+
+/* Prevent text size adjustment on orientation change (iOS) */
+html { -webkit-text-size-adjust: 100%; }
+
+/* Mobile layout fix: ensure content fills screen properly */
+@media (max-width: 767px) {
+  .sidebar-offset { margin-right: 0 !important; }
+}

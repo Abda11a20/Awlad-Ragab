@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoicesAPI, productsAPI, customersAPI, default as http } from '../api';
 import useStore from '../store';
 import toast from 'react-hot-toast';
-import { SkeletonTable, EmptyState, ErrorState, Modal, Pagination, inputCls, labelCls, badgeCls } from '../components/UI';
+import { SkeletonTable, EmptyState, ErrorState, Modal, Pagination, SearchableSelect, inputCls, labelCls, badgeCls } from '../components/UI';
 import { formatCurrency, formatDateTime } from '../utils/format';
 import { Plus, Trash2, Undo2, FileText as FileTextIcon, Eye, Printer } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
@@ -52,18 +52,20 @@ export default function Invoices() {
   const [refundItems, setRefundItems] = useState({});
 
   // Print State
-  const printRef = useRef();
+  const printRef = useRef(null);
   const [invoiceToPrint, setInvoiceToPrint] = useState(null);
 
   const triggerPrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     onAfterPrint: () => setInvoiceToPrint(null),
     documentTitle: `invoice-${invoiceToPrint?._id?.slice(-8) || ''}`
   });
 
   useEffect(() => {
     if (invoiceToPrint) {
-      triggerPrint();
+      // Small delay to ensure the hidden DOM element is rendered
+      const t = setTimeout(() => triggerPrint(), 100);
+      return () => clearTimeout(t);
     }
   }, [invoiceToPrint, triggerPrint]);
 
@@ -289,70 +291,123 @@ export default function Invoices() {
       </div>
 
       {loading ? (
-        <SkeletonTable rows={8} cols={8} />
+        <SkeletonTable rows={5} cols={4} />
       ) : error ? (
         <ErrorState msg={error} onRetry={loadData} />
       ) : invoices.length === 0 ? (
         <EmptyState msg="لا توجد فواتير" icon="🧾" />
       ) : (
-        <div className="rounded-2xl overflow-x-auto border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-right text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
-              <tr>
-                <th className="px-5 py-4 w-12 text-center">#</th>
-                <th className="px-5 py-4">العميل</th>
-                <th className="px-5 py-4">التاريخ</th>
-                <th className="px-5 py-4">الإجمالي</th>
-                <th className="px-5 py-4">المدفوع / المتبقي</th>
-                <th className="px-5 py-4 text-center">الطريقة</th>
-                <th className="px-5 py-4 text-center">الحالة</th>
-                <th className="px-5 py-4 text-center">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {sliced.map((inv, i) => (
-                <tr key={inv._id} onClick={(e) => {
-                  // Prevent opening detail when clicking action buttons
-                  if (e.target.closest('button') || e.target.closest('a')) return;
-                  openDetail(inv);
-                }} className="hover:bg-slate-50 transition-colors group cursor-pointer">
-                  <td className="px-5 py-4 text-center text-slate-500 font-bold">{(page - 1) * PER_PAGE + i + 1}</td>
-                  <td className="px-5 py-4 font-bold text-slate-800">
-                    {inv.customerId?.name || <span className="text-slate-500 italic font-normal">عميل نقدي (Walk-in)</span>}
-                  </td>
-                  <td className="px-5 py-4 text-slate-500 text-xs font-bold">{formatDateTime(inv.createdAt)}</td>
-                  <td className="px-5 py-4 text-emerald-600 font-mono font-bold">{formatCurrency(inv.totalAmount)}</td>
-                  <td className="px-5 py-4">
-                    <div className="text-slate-700 font-mono text-xs font-bold mb-0.5"><span className="text-slate-400">م:</span> {formatCurrency(inv.paidAmount)}</div>
-                    <div className={`${inv.dueAmount > 0 ? 'text-red-500' : 'text-slate-500'} font-mono text-xs font-bold`}><span className="text-slate-400">ب:</span> {formatCurrency(inv.dueAmount)}</div>
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    <span className={badgeCls.info}>{METHOD_MAP[inv.paymentMethod] || inv.paymentMethod}</span>
-                  </td>
-                  <td className="px-5 py-4 text-center">
+        <>
+          {/* Mobile Cards View */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {sliced.map((inv, i) => (
+              <div key={inv._id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <p className="font-bold text-slate-800 text-sm">
+                      {inv.customerId?.name || <span className="text-slate-500 italic font-normal">عميل نقدي</span>}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">{formatDateTime(inv.createdAt)}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
                     <span className={STATUS_MAP[inv.status]?.cls || badgeCls.info}>{STATUS_MAP[inv.status]?.label || inv.status}</span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => openDetail(inv)} className="text-slate-800 hover:text-slate-900 hover:bg-slate-100 p-2 rounded-lg transition-colors" title="عرض التفاصيل">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => downloadPDF(inv)} className="text-slate-800 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="طباعة / PDF">
-                        <Printer className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => openRefund(inv)} className="text-slate-800 hover:text-amber-700 hover:bg-amber-50 p-2 rounded-lg transition-colors" title="إرجاع (Refund)">
-                        <Undo2 className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => openDelete(inv)} className="text-slate-800 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+                    <span className={badgeCls.info}>{METHOD_MAP[inv.paymentMethod] || inv.paymentMethod}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-3 bg-slate-50 rounded-xl p-2.5">
+                  <div className="text-center">
+                    <p className="text-[10px] text-slate-400 font-bold mb-0.5">الإجمالي</p>
+                    <p className="text-sm font-mono font-bold text-emerald-600">{formatCurrency(inv.totalAmount)}</p>
+                  </div>
+                  <div className="text-center border-x border-slate-200">
+                    <p className="text-[10px] text-slate-400 font-bold mb-0.5">المدفوع</p>
+                    <p className="text-sm font-mono font-bold text-slate-700">{formatCurrency(inv.paidAmount)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-slate-400 font-bold mb-0.5">المتبقي</p>
+                    <p className={`text-sm font-mono font-bold ${inv.dueAmount > 0 ? 'text-red-500' : 'text-slate-400'}`}>{formatCurrency(inv.dueAmount)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-bold">#{(page - 1) * PER_PAGE + i + 1}</span>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => openDetail(inv)} className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 p-2 rounded-lg transition-colors" title="عرض التفاصيل">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => downloadPDF(inv)} className="text-slate-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="طباعة / PDF">
+                      <Printer className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => openRefund(inv)} className="text-slate-600 hover:text-amber-700 hover:bg-amber-50 p-2 rounded-lg transition-colors" title="إرجاع">
+                      <Undo2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => openDelete(inv)} className="text-slate-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-2xl overflow-x-auto border border-slate-200 bg-white shadow-sm">
+            <table className="w-full text-right text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                <tr>
+                  <th className="px-5 py-4 w-12 text-center">#</th>
+                  <th className="px-5 py-4">العميل</th>
+                  <th className="px-5 py-4">التاريخ</th>
+                  <th className="px-5 py-4">الإجمالي</th>
+                  <th className="px-5 py-4">المدفوع / المتبقي</th>
+                  <th className="px-5 py-4 text-center">الطريقة</th>
+                  <th className="px-5 py-4 text-center">الحالة</th>
+                  <th className="px-5 py-4 text-center">إجراءات</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sliced.map((inv, i) => (
+                  <tr key={inv._id} onClick={(e) => {
+                    if (e.target.closest('button') || e.target.closest('a')) return;
+                    openDetail(inv);
+                  }} className="hover:bg-slate-50 transition-colors group cursor-pointer">
+                    <td className="px-5 py-4 text-center text-slate-500 font-bold">{(page - 1) * PER_PAGE + i + 1}</td>
+                    <td className="px-5 py-4 font-bold text-slate-800">
+                      {inv.customerId?.name || <span className="text-slate-500 italic font-normal">عميل نقدي (Walk-in)</span>}
+                    </td>
+                    <td className="px-5 py-4 text-slate-500 text-xs font-bold">{formatDateTime(inv.createdAt)}</td>
+                    <td className="px-5 py-4 text-emerald-600 font-mono font-bold">{formatCurrency(inv.totalAmount)}</td>
+                    <td className="px-5 py-4">
+                      <div className="text-slate-700 font-mono text-xs font-bold mb-0.5"><span className="text-slate-400">م:</span> {formatCurrency(inv.paidAmount)}</div>
+                      <div className={`${inv.dueAmount > 0 ? 'text-red-500' : 'text-slate-500'} font-mono text-xs font-bold`}><span className="text-slate-400">ب:</span> {formatCurrency(inv.dueAmount)}</div>
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <span className={badgeCls.info}>{METHOD_MAP[inv.paymentMethod] || inv.paymentMethod}</span>
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <span className={STATUS_MAP[inv.status]?.cls || badgeCls.info}>{STATUS_MAP[inv.status]?.label || inv.status}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => openDetail(inv)} className="text-slate-800 hover:text-slate-900 hover:bg-slate-100 p-2 rounded-lg transition-colors" title="عرض التفاصيل">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => downloadPDF(inv)} className="text-slate-800 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="طباعة / PDF">
+                          <Printer className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => openRefund(inv)} className="text-slate-800 hover:text-amber-700 hover:bg-amber-50 p-2 rounded-lg transition-colors" title="إرجاع (Refund)">
+                          <Undo2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => openDelete(inv)} className="text-slate-800 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {!loading && !error && <Pagination total={total} page={page} perPage={PER_PAGE} onChange={setPage} />}
@@ -363,10 +418,16 @@ export default function Invoices() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div className="md:col-span-2">
               <label className={labelCls}>العميل</label>
-              <select className={inputCls} value={createData.customerId} onChange={e => setCreateData({...createData, customerId: e.target.value})}>
-                <option value="">عميل نقدي (Walk-in)</option>
-                {customers.map(c => <option key={c._id} value={c._id}>{c.name} — {c.phone}</option>)}
-              </select>
+              <SearchableSelect
+                value={createData.customerId}
+                onChange={(val) => setCreateData({ ...createData, customerId: val })}
+                placeholder="ابحث باسم العميل أو رقم الهاتف..."
+                emptyText="لا يوجد عميل بهذا الاسم"
+                options={[
+                  { value: '', label: 'عميل نقدي (Walk-in)' },
+                  ...customers.map(c => ({ value: c._id, label: c.name, sub: c.phone }))
+                ]}
+              />
             </div>
             <div>
               <label className={labelCls}>طريقة الدفع <span className="text-red-400">*</span></label>
@@ -397,10 +458,19 @@ export default function Invoices() {
             <div className="flex flex-col gap-2">
               {createData.items.map((item, idx) => (
                 <div key={idx} className="flex gap-2 items-start">
-                  <select className={`flex-1 ${inputCls}`} value={item.productId} onChange={e => handleCreateItemChange(idx, 'productId', e.target.value)}>
-                    <option value="" disabled>اختر منتجاً...</option>
-                    {products.map(p => <option key={p._id} value={p._id}>{p.name} ({p.stock} متاح)</option>)}
-                  </select>
+                  <div className="flex-1">
+                    <SearchableSelect
+                      value={item.productId}
+                      onChange={(val) => handleCreateItemChange(idx, 'productId', val)}
+                      placeholder="ابحث عن منتج..."
+                      emptyText="لا يوجد منتج بهذا الاسم"
+                      options={products.map(p => ({
+                        value: p._id,
+                        label: p.name,
+                        sub: `متاح: ${p.stock} | سعر: ${p.unitPrice} ج`
+                      }))}
+                    />
+                  </div>
                   <div className="w-24">
                     <input type="number" min="1" className={`${inputCls} text-center`} placeholder="الكمية" value={item.quantity} onChange={e => handleCreateItemChange(idx, 'quantity', e.target.value)} />
                   </div>

@@ -147,69 +147,115 @@ export default function Customers() {
       </div>
       
       {loading ? (
-        <SkeletonTable rows={8} cols={7} />
+        <SkeletonTable rows={5} cols={4} />
       ) : error ? (
         <ErrorState msg={error} onRetry={() => loadData(searchTerm)} />
       ) : customers.length === 0 ? (
         <EmptyState msg="لا يوجد عملاء" icon="👥" />
       ) : (
-        <div className="rounded-2xl overflow-x-auto border border-slate-200 bg-white shadow-sm">
-          <table className="w-full text-right text-sm whitespace-nowrap">
-            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
-              <tr>
-                <th className="px-5 py-4 w-12 text-center">#</th>
-                <th className="px-5 py-4">العميل</th>
-                <th className="px-5 py-4">الهاتف</th>
-                <th className="px-5 py-4">الشركة</th>
-                <th className="px-5 py-4">الرصيد / الحد الائتماني</th>
-                <th className="px-5 py-4 text-center">الحالة</th>
-                <th className="px-5 py-4 text-center">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {sliced.map((c, i) => {
-                const pct = c.creditLimit > 0 ? Math.min((c.balance / c.creditLimit) * 100, 100) : 0;
-                const limitColor = pct > 85 ? 'bg-red-500' : pct > 60 ? 'bg-amber-500' : 'bg-emerald-500';
-                return (
-                  <tr key={c._id} onClick={() => navigate(`/customers/${c._id}`)} className="hover:bg-slate-50 transition-colors group cursor-pointer">
-                    <td className="px-5 py-4 text-center text-slate-500 font-bold">{(page - 1) * PER_PAGE + i + 1}</td>
-                    <td className="px-5 py-4">
-                      <div className="font-bold text-slate-800">{c.name}</div>
-                      {c.email && <div className="text-xs text-slate-500 mt-0.5">{c.email}</div>}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="text-slate-700 font-bold font-mono">{c.phone}</div>
-                      {c.secondPhone && <div className="text-xs text-slate-500 font-mono font-bold mt-0.5">{c.secondPhone}</div>}
-                    </td>
-                    <td className="px-5 py-4 text-slate-700 font-bold">{c.companyName || <span className="text-slate-400">—</span>}</td>
-                    <td className="px-5 py-4 min-w-[200px]">
-                      {c.allowCredit ? (
-                        <div className="flex flex-col gap-1.5">
-                          <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                            <div className={`h-full ${limitColor} credit-fill rounded-full`} style={{ width: `${pct}%` }}></div>
-                          </div>
-                          <div className="flex justify-between text-[11px] font-mono">
-                            <span className={pct > 85 ? 'text-red-500 font-bold' : 'text-slate-500 font-bold'}>{formatCurrency(c.balance)}</span>
-                            <span className="text-slate-500 font-bold">{formatCurrency(c.creditLimit)}</span>
-                          </div>
-                        </div>
-                      ) : <span className="text-slate-600 font-bold text-xs bg-slate-100 px-2 py-1 rounded">بدون ائتمان</span>}
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <span className={c.isActive ? badgeCls.success : badgeCls.danger}>{c.isActive ? 'نشط' : 'موقوف'}</span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={(e) => { e.stopPropagation(); openEdit(c); }} className="text-slate-800 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="تعديل"><Edit2 className="w-4 h-4" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); openDelete(c._id); }} className="text-slate-800 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف"><Trash2 className="w-4 h-4" /></button>
+        <>
+          {/* Mobile Cards View */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {sliced.map((c, i) => {
+              const pct = c.creditLimit > 0 ? Math.min((c.balance / c.creditLimit) * 100, 100) : 0;
+              const limitColor = pct > 85 ? 'bg-red-500' : pct > 60 ? 'bg-amber-500' : 'bg-emerald-500';
+              return (
+                <div key={c._id} onClick={() => navigate(`/customers/${c._id}`)} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm cursor-pointer active:bg-slate-50 transition-colors">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-slate-800 text-sm truncate">{c.name}</p>
+                      {c.companyName && <p className="text-xs text-slate-400 mt-0.5 truncate">{c.companyName}</p>}
+                    </div>
+                    <span className={`mr-2 flex-shrink-0 ${c.isActive ? badgeCls.success : badgeCls.danger}`}>{c.isActive ? 'نشط' : 'موقوف'}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-sm font-mono font-bold text-slate-700" dir="ltr">{c.phone}</span>
+                    {c.secondPhone && <span className="text-xs font-mono text-slate-400" dir="ltr">| {c.secondPhone}</span>}
+                  </div>
+                  {c.allowCredit ? (
+                    <div className="mb-3">
+                      <div className="flex justify-between text-[11px] font-mono mb-1">
+                        <span className={pct > 85 ? 'text-red-500 font-bold' : 'text-slate-500 font-bold'}>المديونية: {formatCurrency(c.balance)}</span>
+                        <span className="text-slate-400 font-bold">الحد: {formatCurrency(c.creditLimit)}</span>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                        <div className={`h-full ${limitColor} credit-fill rounded-full`} style={{ width: `${pct}%` }}></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-slate-500 font-bold text-xs bg-slate-100 px-2 py-1 rounded inline-block mb-3">بدون ائتمان</span>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-400 font-bold">#{(page - 1) * PER_PAGE + i + 1}</span>
+                    <div className="flex gap-1">
+                      <button onClick={(e) => { e.stopPropagation(); openEdit(c); }} className="text-slate-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="تعديل"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={(e) => { e.stopPropagation(); openDelete(c._id); }} className="text-slate-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block rounded-2xl overflow-x-auto border border-slate-200 bg-white shadow-sm">
+            <table className="w-full text-right text-sm whitespace-nowrap">
+              <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                <tr>
+                  <th className="px-5 py-4 w-12 text-center">#</th>
+                  <th className="px-5 py-4">العميل</th>
+                  <th className="px-5 py-4">الهاتف</th>
+                  <th className="px-5 py-4">الشركة</th>
+                  <th className="px-5 py-4">الرصيد / الحد الائتماني</th>
+                  <th className="px-5 py-4 text-center">الحالة</th>
+                  <th className="px-5 py-4 text-center">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sliced.map((c, i) => {
+                  const pct = c.creditLimit > 0 ? Math.min((c.balance / c.creditLimit) * 100, 100) : 0;
+                  const limitColor = pct > 85 ? 'bg-red-500' : pct > 60 ? 'bg-amber-500' : 'bg-emerald-500';
+                  return (
+                    <tr key={c._id} onClick={() => navigate(`/customers/${c._id}`)} className="hover:bg-slate-50 transition-colors group cursor-pointer">
+                      <td className="px-5 py-4 text-center text-slate-500 font-bold">{(page - 1) * PER_PAGE + i + 1}</td>
+                      <td className="px-5 py-4">
+                        <div className="font-bold text-slate-800">{c.name}</div>
+                        {c.email && <div className="text-xs text-slate-500 mt-0.5">{c.email}</div>}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="text-slate-700 font-bold font-mono">{c.phone}</div>
+                        {c.secondPhone && <div className="text-xs text-slate-500 font-mono font-bold mt-0.5">{c.secondPhone}</div>}
+                      </td>
+                      <td className="px-5 py-4 text-slate-700 font-bold">{c.companyName || <span className="text-slate-400">—</span>}</td>
+                      <td className="px-5 py-4 min-w-[200px]">
+                        {c.allowCredit ? (
+                          <div className="flex flex-col gap-1.5">
+                            <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                              <div className={`h-full ${limitColor} credit-fill rounded-full`} style={{ width: `${pct}%` }}></div>
+                            </div>
+                            <div className="flex justify-between text-[11px] font-mono">
+                              <span className={pct > 85 ? 'text-red-500 font-bold' : 'text-slate-500 font-bold'}>{formatCurrency(c.balance)}</span>
+                              <span className="text-slate-500 font-bold">{formatCurrency(c.creditLimit)}</span>
+                            </div>
+                          </div>
+                        ) : <span className="text-slate-600 font-bold text-xs bg-slate-100 px-2 py-1 rounded">بدون ائتمان</span>}
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <span className={c.isActive ? badgeCls.success : badgeCls.danger}>{c.isActive ? 'نشط' : 'موقوف'}</span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={(e) => { e.stopPropagation(); openEdit(c); }} className="text-slate-800 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="تعديل"><Edit2 className="w-4 h-4" /></button>
+                          <button onClick={(e) => { e.stopPropagation(); openDelete(c._id); }} className="text-slate-800 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {!loading && !error && <Pagination total={total} page={page} perPage={PER_PAGE} onChange={setPage} />}

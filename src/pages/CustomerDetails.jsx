@@ -57,11 +57,31 @@ export default function CustomerDetails() {
     }
     setCustomer(custData?.data);
 
-    // Fetch customer invoices details
-    const { data: invData, error: invErr } = await invoicesAPI.getCustomerInvoices(id);
-    // 404 just means no invoices, handle it gracefully
-    if (invData?.data) {
-      setInvoiceData(invData.data);
+    // Fetch ALL invoices and filter for this customer (Since backend route is missing)
+    const { data: allInvData } = await invoicesAPI.getAll();
+    
+    if (allInvData?.data) {
+      const cInvoices = allInvData.data.filter(inv => 
+        (inv.customerId?._id === id) || (inv.customerId === id)
+      );
+
+      const totalAmount = cInvoices.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
+      const totalPaid = cInvoices.reduce((sum, i) => sum + (i.paidAmount || 0), 0);
+      const totalDue = cInvoices.reduce((sum, i) => sum + (i.dueAmount || 0), 0);
+
+      // Create dummy IDs for the list to render correctly since we map over invoiceId instead of _id in the JSX
+      const mappedInvoices = cInvoices.map(i => ({
+        ...i,
+        invoiceId: i._id // Ensure invoiceId exists for the key and handlePrint
+      }));
+
+      setInvoiceData({ 
+        totalInvoices: cInvoices.length, 
+        totalAmount, 
+        totalPaid, 
+        totalDue, 
+        invoices: mappedInvoices 
+      });
     } else {
       setInvoiceData({ totalInvoices: 0, totalAmount: 0, totalPaid: 0, totalDue: 0, invoices: [] });
     }
