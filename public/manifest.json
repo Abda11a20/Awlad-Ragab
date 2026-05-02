@@ -1,0 +1,14 @@
+{
+  "name": "أولاد رجب",
+  "short_name": "أولاد رجب",
+  "description": "نظام إدارة المستودعات - أولاد رجب",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#f8fafc",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
