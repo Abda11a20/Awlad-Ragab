@@ -163,6 +163,7 @@ export function printInvoice(invoice) {
 
 /**
  * printThermalInvoice — formats and prints the invoice specifically for 80mm thermal printers.
+ * Uses 100% width so the printer driver handles the 80mm sizing.
  */
 export function printThermalInvoice(invoice) {
   if (!invoice) return;
@@ -186,17 +187,14 @@ export function printThermalInvoice(invoice) {
     const qty  = it.quantity || 0;
     const price = it.unitPrice || 0;
     const total = qty * price;
-    const returned = qty === 0 ? ' <span style="font-size:10px;">(مُرجَع)</span>' : '';
-    // For thermal, we stack the item details to fit 80mm
+    const returned = qty === 0 ? ' <span style="font-size:13px;">(مُرجَع)</span>' : '';
+    const rowStyle = qty === 0 ? 'opacity:0.45;' : '';
     return `
-      <tr style="border-bottom:1px dashed #000;">
-        <td style="padding:4px 0;">
-          <div style="font-weight:bold; font-size:13px; margin-bottom:2px;">${name}${returned}</div>
-          <div style="display:flex; justify-content:space-between; font-size:12px;">
-            <span>${qty} × ${fmt(price)}</span>
-            <span style="font-weight:bold;">${fmt(total)}</span>
-          </div>
-        </td>
+      <tr style="border-bottom:1px dashed #ccc;${rowStyle}">
+        <td style="padding:6px 1px;font-weight:bold;font-size:15px;">${name}${returned}</td>
+        <td style="padding:6px 1px;text-align:center;font-size:15px;">${qty}</td>
+        <td style="padding:6px 1px;text-align:center;font-size:14px;">${fmt(price)}</td>
+        <td style="padding:6px 1px;text-align:center;font-weight:bold;font-size:14px;">${fmt(total)}</td>
       </tr>`;
   }).join('');
 
@@ -206,117 +204,99 @@ export function printThermalInvoice(invoice) {
   <meta charset="UTF-8">
   <title>فاتورة #${invId}</title>
   <style>
-    @page { margin: 0; size: 80mm auto; }
+    @page { size: 80mm auto; margin: 0; }
+    @media print { body { padding: 2px; } }
     *{margin:0;padding:0;box-sizing:border-box}
     body{
-      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      font-family: Tahoma, Arial, sans-serif;
       background:#fff;
       color:#000;
-      width: 78mm;
-      padding: 5mm;
-      margin: 0 auto;
+      width: 100%;
+      max-width: 80mm;
+      padding: 3px;
+      margin: 0;
       direction:rtl;
-      font-size:12px;
+      font-size:16px;
+      line-height:1.5;
     }
     h1,h2,h3,p{margin:0}
     table{width:100%;border-collapse:collapse}
     .text-center{text-align:center}
-    .flex-between{display:flex;justify-content:space-between}
-    .mb-2{margin-bottom:8px}
-    .mb-4{margin-bottom:16px}
+    .flex-between{display:flex;justify-content:space-between;align-items:center}
+    .mb{margin-bottom:6px}
     .font-bold{font-weight:bold}
-    .border-bottom{border-bottom: 1px dashed #000; padding-bottom: 8px;}
-    .border-top{border-top: 1px dashed #000; padding-top: 8px;}
+    .sep{border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px}
+    .sep-top{border-top:2px dashed #000;padding-top:8px;margin-top:8px}
   </style>
 </head>
 <body>
 
   <!-- Header -->
-  <div class="text-center border-bottom mb-2">
-    <h1 style="font-size:18px; font-weight:bold; margin-bottom:4px;">شركة مارس</h1>
-    <h2 style="font-size:16px; font-weight:bold; margin-bottom:6px;">شركة أولاد رجب</h2>
-    <div style="font-size:14px; font-weight:bold;">فاتورة رقم #${invId}</div>
-    <div style="font-size:11px; margin-top:4px;">${fmtDate(invoice.createdAt)}</div>
+  <div class="text-center sep">
+    <h1 style="font-size:28px;font-weight:900;margin-bottom:4px;">شركة مارس</h1>
+    <h2 style="font-size:22px;font-weight:bold;margin-bottom:6px;">شركة أولاد رجب</h2>
+    <div style="font-size:18px;font-weight:bold;margin-bottom:4px;">فاتورة رقم #${invId}</div>
+    <div style="font-size:14px;">${fmtDate(invoice.createdAt)}</div>
   </div>
 
-  <!-- Info Grid -->
-  <div class="border-bottom mb-2" style="padding-bottom:4px;">
-    <div class="flex-between" style="margin-bottom:4px;">
-      <span class="font-bold">العميل:</span>
-      <span class="font-bold">${invoice.customerId?.name || 'عميل نقدي'}</span>
-    </div>
-    ${invoice.customerId?.phone ? `
-    <div class="flex-between" style="margin-bottom:4px;">
-      <span class="font-bold">الجوال:</span>
-      <span style="font-family:monospace;">${invoice.customerId.phone}</span>
-    </div>` : ''}
-    <div class="flex-between" style="margin-bottom:4px;">
-      <span class="font-bold">الدفع:</span>
-      <span class="font-bold">${METHOD[invoice.paymentMethod] || invoice.paymentMethod || ''}</span>
-    </div>
-    <div class="flex-between">
-      <span class="font-bold">الحالة:</span>
-      <span class="font-bold">${STATUS[invoice.status] || invoice.status || ''}</span>
-    </div>
+  <!-- Info -->
+  <div class="sep">
+    <div class="flex-between mb"><span class="font-bold" style="font-size:16px;">العميل:</span><span class="font-bold" style="font-size:16px;">${invoice.customerId?.name || 'عميل نقدي'}</span></div>
+    ${invoice.customerId?.phone ? `<div class="flex-between mb"><span class="font-bold" style="font-size:16px;">الجوال:</span><span style="font-size:16px;">${invoice.customerId.phone}</span></div>` : ''}
+    <div class="flex-between mb"><span class="font-bold" style="font-size:16px;">الدفع:</span><span class="font-bold" style="font-size:16px;">${METHOD[invoice.paymentMethod] || invoice.paymentMethod || ''}</span></div>
+    <div class="flex-between"><span class="font-bold" style="font-size:16px;">الحالة:</span><span class="font-bold" style="font-size:16px;">${STATUS[invoice.status] || invoice.status || ''}</span></div>
   </div>
 
   <!-- Items Table -->
-  <div class="mb-2">
+  <div class="mb">
     <table>
+      <thead>
+        <tr style="border-bottom:2px solid #000;">
+          <th style="padding:6px 1px;text-align:right;font-size:15px;">المنتج</th>
+          <th style="padding:6px 1px;text-align:center;font-size:15px;">الكمية</th>
+          <th style="padding:6px 1px;text-align:center;font-size:15px;">سعر الوحدة</th>
+          <th style="padding:6px 1px;text-align:center;font-size:15px;">الإجمالي</th>
+        </tr>
+      </thead>
       <tbody>${itemsRows}</tbody>
     </table>
   </div>
 
   <!-- Totals -->
-  <div class="border-top border-bottom mb-4" style="padding-top:4px; padding-bottom:4px;">
-    <div class="flex-between" style="margin-bottom:4px;">
-      <span>الإجمالي الفرعي:</span>
-      <span style="font-family:monospace;">${fmt(invoice.subTotal)}</span>
+  <div class="sep-top sep">
+    <div class="flex-between mb"><span style="font-size:16px;">الإجمالي الفرعي:</span><span style="font-size:16px;">${fmt(invoice.subTotal)}</span></div>
+    <div class="flex-between mb"><span style="font-size:16px;">الخصم:</span><span style="font-size:16px;">${fmt(invoice.discount)}</span></div>
+    <div class="flex-between font-bold" style="font-size:22px;border-top:2px solid #000;padding-top:6px;margin:6px 0;">
+      <span>الصافي:</span><span>${fmt(invoice.totalAmount)}</span>
     </div>
-    <div class="flex-between" style="margin-bottom:4px;">
-      <span>الخصم:</span>
-      <span style="font-family:monospace;">${fmt(invoice.discount)}</span>
-    </div>
-    <div class="flex-between font-bold" style="font-size:14px; margin-top:4px; margin-bottom:4px; border-top:1px solid #000; padding-top:4px;">
-      <span>الصافي:</span>
-      <span style="font-family:monospace;">${fmt(invoice.totalAmount)}</span>
-    </div>
-    <div class="flex-between" style="margin-top:4px;">
-      <span>المدفوع:</span>
-      <span style="font-family:monospace;">${fmt(invoice.paidAmount)}</span>
-    </div>
-    <div class="flex-between font-bold" style="margin-top:4px;">
-      <span>المتبقي:</span>
-      <span style="font-family:monospace;">${fmt(invoice.dueAmount)}</span>
-    </div>
+    <div class="flex-between mb"><span style="font-size:16px;">المدفوع:</span><span style="font-size:16px;">${fmt(invoice.paidAmount)}</span></div>
+    <div class="flex-between font-bold" style="font-size:18px;"><span>المتبقي:</span><span>${fmt(invoice.dueAmount)}</span></div>
   </div>
 
   <!-- Footer -->
-  <div class="text-center font-bold" style="font-size:14px;">
-    <div style="margin-bottom:4px;">مازن رجب</div>
-    <div style="font-family:monospace; font-size:12px; direction:ltr;">01025210536 - 01158325071</div>
+  <div class="text-center" style="margin-top:10px;">
+    <div style="font-weight:900;font-size:22px;margin-bottom:4px;">مازن رجب</div>
+    <div style="font-size:16px;direction:ltr;">01025210536 - 01158325071</div>
+    <div style="margin-top:12px;font-size:14px;">شكراً لتعاملكم معنا</div>
   </div>
-
-  <div style="text-align:center; margin-top:20px; font-size:10px;">شكراً لتعاملكم معنا</div>
 
 </body>
 </html>`;
 
-  // Use a hidden iframe
   const iframe = document.createElement('iframe');
-  iframe.style.position = 'absolute';
-  iframe.style.width = '0px';
-  iframe.style.height = '0px';
+  iframe.style.position = 'fixed';
+  iframe.style.left = '-9999px';
+  iframe.style.top = '0';
+  iframe.style.width = '302px';
+  iframe.style.height = '1px';
   iframe.style.border = 'none';
-  iframe.style.visibility = 'hidden';
-  iframe.style.zIndex = '-1';
+  iframe.style.opacity = '0';
   document.body.appendChild(iframe);
 
   iframe.contentDocument.open();
   iframe.contentDocument.write(html);
   iframe.contentDocument.close();
 
-  // Wait for content to render, then print
   setTimeout(() => {
     try {
       iframe.contentWindow.focus();
@@ -324,7 +304,6 @@ export function printThermalInvoice(invoice) {
     } catch (e) {
       console.error('Thermal Print failed', e);
     }
-    // Cleanup iframe after print dialog is closed
     setTimeout(() => {
       if (document.body.contains(iframe)) {
         document.body.removeChild(iframe);

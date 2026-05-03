@@ -4,9 +4,10 @@ import { customersAPI, invoicesAPI } from '../api';
 import { SkeletonTable, ErrorState, Modal, badgeCls } from '../components/UI';
 import useStore from '../store';
 import { formatCurrency, formatDateTime } from '../utils/format';
-import { ArrowRight, User, Phone, Mail, MapPin, Building, CreditCard, FileText, Activity, Printer } from 'lucide-react';
+import { ArrowRight, User, Phone, Mail, MapPin, Building, CreditCard, FileText, Activity, Printer, Bluetooth } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { printInvoice, printThermalInvoice } from '../utils/print';
+import { isBleSupported, isConnected as isBleConnected, printThermalDirect, getDeviceName } from '../utils/thermalBluetooth';
 
 const STATUS_MAP = {
   paid:    { label: 'مدفوعة',  cls: badgeCls.success },
@@ -62,7 +63,7 @@ export default function CustomerDetails() {
       return;
     }
     toast.dismiss(toastId);
-    printInvoice(data?.data);
+    printThermalInvoice(data?.data);
   };
 
   const loadData = useCallback(async () => {
@@ -432,18 +433,24 @@ export default function CustomerDetails() {
               </div>
               <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                 <button 
-                  onClick={() => printThermalInvoice(currentInvoice)} 
-                  className="flex items-center justify-center gap-2 bg-slate-100 text-slate-800 px-6 py-2.5 rounded-full font-bold hover:bg-slate-200 transition-colors shadow-sm w-full md:w-auto"
-                >
-                  <Printer className="w-5 h-5" />
-                  طباعة حرارية
-                </button>
-                <button 
-                  onClick={() => printInvoice(currentInvoice)} 
+                  onClick={async () => {
+                    if (isBleSupported()) {
+                      const tid = toast.loading('جاري الطباعة...');
+                      try {
+                        await printThermalDirect(currentInvoice);
+                        toast.success(isBleConnected() ? `تم الطباعة على ${getDeviceName()}` : 'تم الطباعة', { id: tid });
+                      } catch (err) {
+                        toast.error(err.message || 'فشل الطباعة', { id: tid });
+                        printThermalInvoice(currentInvoice);
+                      }
+                    } else {
+                      printThermalInvoice(currentInvoice);
+                    }
+                  }} 
                   className="flex items-center justify-center gap-2 bg-slate-800 text-white px-6 py-2.5 rounded-full font-bold hover:bg-slate-700 transition-colors shadow-sm w-full md:w-auto"
                 >
                   <Printer className="w-5 h-5" />
-                  طباعة A4
+                  طباعة الفاتورة
                 </button>
               </div>
             </div>
