@@ -160,3 +160,176 @@ export function printInvoice(invoice) {
     }, 5000);
   }, 600);
 }
+
+/**
+ * printThermalInvoice — formats and prints the invoice specifically for 80mm thermal printers.
+ */
+export function printThermalInvoice(invoice) {
+  if (!invoice) return;
+
+  const fmt = (n) => `${Number(n || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2 })} ج`;
+  const fmtDate = (d) => {
+    if (!d) return '';
+    return new Date(d).toLocaleDateString('ar-EG', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+    });
+  };
+
+  const STATUS = { paid: 'مدفوعة', partial: 'جزئية', unpaid: 'غير مدفوعة', PAID: 'مدفوعة', PARTIAL: 'جزئية', UNPAID: 'غير مدفوعة' };
+  const METHOD = { cash: 'كاش', credit: 'آجل', CASH: 'كاش', CREDIT: 'آجل' };
+
+  const invId = (invoice._id || invoice.invoiceId || '').slice(-8).toUpperCase();
+
+  const itemsRows = (invoice.items || []).map((it) => {
+    const name = it.productId?.name || 'منتج محذوف';
+    const qty  = it.quantity || 0;
+    const price = it.unitPrice || 0;
+    const total = qty * price;
+    const returned = qty === 0 ? ' <span style="font-size:10px;">(مُرجَع)</span>' : '';
+    // For thermal, we stack the item details to fit 80mm
+    return `
+      <tr style="border-bottom:1px dashed #000;">
+        <td style="padding:4px 0;">
+          <div style="font-weight:bold; font-size:13px; margin-bottom:2px;">${name}${returned}</div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;">
+            <span>${qty} × ${fmt(price)}</span>
+            <span style="font-weight:bold;">${fmt(total)}</span>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>فاتورة #${invId}</title>
+  <style>
+    @page { margin: 0; size: 80mm auto; }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+      background:#fff;
+      color:#000;
+      width: 78mm;
+      padding: 5mm;
+      margin: 0 auto;
+      direction:rtl;
+      font-size:12px;
+    }
+    h1,h2,h3,p{margin:0}
+    table{width:100%;border-collapse:collapse}
+    .text-center{text-align:center}
+    .flex-between{display:flex;justify-content:space-between}
+    .mb-2{margin-bottom:8px}
+    .mb-4{margin-bottom:16px}
+    .font-bold{font-weight:bold}
+    .border-bottom{border-bottom: 1px dashed #000; padding-bottom: 8px;}
+    .border-top{border-top: 1px dashed #000; padding-top: 8px;}
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="text-center border-bottom mb-2">
+    <h1 style="font-size:18px; font-weight:bold; margin-bottom:4px;">شركة مارس</h1>
+    <h2 style="font-size:16px; font-weight:bold; margin-bottom:6px;">شركة أولاد رجب</h2>
+    <div style="font-size:14px; font-weight:bold;">فاتورة رقم #${invId}</div>
+    <div style="font-size:11px; margin-top:4px;">${fmtDate(invoice.createdAt)}</div>
+  </div>
+
+  <!-- Info Grid -->
+  <div class="border-bottom mb-2" style="padding-bottom:4px;">
+    <div class="flex-between" style="margin-bottom:4px;">
+      <span class="font-bold">العميل:</span>
+      <span class="font-bold">${invoice.customerId?.name || 'عميل نقدي'}</span>
+    </div>
+    ${invoice.customerId?.phone ? `
+    <div class="flex-between" style="margin-bottom:4px;">
+      <span class="font-bold">الجوال:</span>
+      <span style="font-family:monospace;">${invoice.customerId.phone}</span>
+    </div>` : ''}
+    <div class="flex-between" style="margin-bottom:4px;">
+      <span class="font-bold">الدفع:</span>
+      <span class="font-bold">${METHOD[invoice.paymentMethod] || invoice.paymentMethod || ''}</span>
+    </div>
+    <div class="flex-between">
+      <span class="font-bold">الحالة:</span>
+      <span class="font-bold">${STATUS[invoice.status] || invoice.status || ''}</span>
+    </div>
+  </div>
+
+  <!-- Items Table -->
+  <div class="mb-2">
+    <table>
+      <tbody>${itemsRows}</tbody>
+    </table>
+  </div>
+
+  <!-- Totals -->
+  <div class="border-top border-bottom mb-4" style="padding-top:4px; padding-bottom:4px;">
+    <div class="flex-between" style="margin-bottom:4px;">
+      <span>الإجمالي الفرعي:</span>
+      <span style="font-family:monospace;">${fmt(invoice.subTotal)}</span>
+    </div>
+    <div class="flex-between" style="margin-bottom:4px;">
+      <span>الخصم:</span>
+      <span style="font-family:monospace;">${fmt(invoice.discount)}</span>
+    </div>
+    <div class="flex-between font-bold" style="font-size:14px; margin-top:4px; margin-bottom:4px; border-top:1px solid #000; padding-top:4px;">
+      <span>الصافي:</span>
+      <span style="font-family:monospace;">${fmt(invoice.totalAmount)}</span>
+    </div>
+    <div class="flex-between" style="margin-top:4px;">
+      <span>المدفوع:</span>
+      <span style="font-family:monospace;">${fmt(invoice.paidAmount)}</span>
+    </div>
+    <div class="flex-between font-bold" style="margin-top:4px;">
+      <span>المتبقي:</span>
+      <span style="font-family:monospace;">${fmt(invoice.dueAmount)}</span>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="text-center font-bold" style="font-size:14px;">
+    <div style="margin-bottom:4px;">مازن رجب</div>
+    <div style="font-family:monospace; font-size:12px; direction:ltr;">01025210536 - 01158325071</div>
+  </div>
+
+  <div style="text-align:center; margin-top:20px; font-size:10px;">شكراً لتعاملكم معنا</div>
+
+</body>
+</html>`;
+
+  // Use a hidden iframe
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'absolute';
+  iframe.style.width = '0px';
+  iframe.style.height = '0px';
+  iframe.style.border = 'none';
+  iframe.style.visibility = 'hidden';
+  iframe.style.zIndex = '-1';
+  document.body.appendChild(iframe);
+
+  iframe.contentDocument.open();
+  iframe.contentDocument.write(html);
+  iframe.contentDocument.close();
+
+  // Wait for content to render, then print
+  setTimeout(() => {
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch (e) {
+      console.error('Thermal Print failed', e);
+    }
+    // Cleanup iframe after print dialog is closed
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 5000);
+  }, 600);
+}
+

@@ -15,6 +15,7 @@ export default function Customers() {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -27,14 +28,12 @@ export default function Customers() {
   };
   const [formData, setFormData] = useState(initialForm);
 
-  const loadData = useCallback(async (search = '') => {
-    if (customers.length > 0 && !search) {
-      setLoading(false);
-      return;
-    }
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const q = search ? `?name=${encodeURIComponent(search)}` : '';
+    let qParams = [`page=${page}`, `limit=${PER_PAGE}`];
+    if (debouncedSearch) qParams.push(`name=${encodeURIComponent(debouncedSearch)}`);
+    const q = '?' + qParams.join('&');
     const { data, error: apiError } = await customersAPI.getAll(q);
     
     // 404 means "no customers found" — treat as empty, not an error
@@ -46,18 +45,23 @@ export default function Customers() {
       setCustomers(data?.data || []);
     }
     setLoading(false);
-  }, [setCustomers]);
+  }, [page, debouncedSearch, setCustomers]);
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      setPage(1);
-      loadData(searchTerm);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      if (searchTerm !== debouncedSearch) setPage(1);
     }, 400);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, loadData]);
+    return () => clearTimeout(timer);
+  }, [searchTerm, debouncedSearch]);
 
-  const total = customers.length;
-  const sliced = customers.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Backend handles pagination
+  const currentItems = customers || [];
+  const hasNextPage = currentItems.length === PER_PAGE;
 
   const openAdd = () => {
     setCurrentId(null);
@@ -160,7 +164,7 @@ export default function Customers() {
         <>
           {/* Mobile Cards View */}
           <div className="flex flex-col gap-3 md:hidden">
-            {sliced.map((c, i) => {
+            {currentItems.map((c, i) => {
               const pct = c.creditLimit > 0 ? Math.min((c.balance / c.creditLimit) * 100, 100) : 0;
               const limitColor = pct > 85 ? 'bg-red-500' : pct > 60 ? 'bg-amber-500' : 'bg-emerald-500';
               return (
@@ -216,7 +220,7 @@ export default function Customers() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {sliced.map((c, i) => {
+                {currentItems.map((c, i) => {
                   const pct = c.creditLimit > 0 ? Math.min((c.balance / c.creditLimit) * 100, 100) : 0;
                   const limitColor = pct > 85 ? 'bg-red-500' : pct > 60 ? 'bg-amber-500' : 'bg-emerald-500';
                   return (
@@ -262,7 +266,7 @@ export default function Customers() {
         </>
       )}
 
-      {!loading && !error && <Pagination total={total} page={page} perPage={PER_PAGE} onChange={setPage} />}
+      {!loading && !error && <Pagination page={page} hasNext={hasNextPage} onChange={setPage} />}
 
       <Modal 
         isOpen={isModalOpen} 

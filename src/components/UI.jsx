@@ -231,73 +231,33 @@ export function Modal({ isOpen, onClose, title, children, onConfirm, confirmText
   );
 }
 
-export function Pagination({ total, page, perPage, onChange }) {
-  const pages = Math.ceil(total / perPage);
-  if (pages <= 1) return null;
+export function Pagination({ page, hasNext, onChange }) {
+  if (page <= 1 && !hasNext) return null;
 
-  const btnBase = 'min-w-[2rem] h-8 px-2 rounded-lg text-xs font-bold transition-all border shadow-sm';
-  const active  = `${btnBase} bg-emerald-600 border-emerald-600 text-white`;
-  const normal  = `${btnBase} bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900`;
+  const btnBase = 'min-w-[6rem] h-10 px-4 rounded-xl text-sm font-bold transition-all border shadow-sm flex items-center justify-center gap-2';
+  const active  = `${btnBase} bg-slate-800 border-slate-800 text-white hover:bg-slate-700`;
   const disabled = `${btnBase} bg-slate-50 border-slate-100 text-slate-400 cursor-not-allowed shadow-none`;
 
-  const getPageNumbers = () => {
-    const nums = [];
-    for (let i = 1; i <= pages; i++) {
-      if (i === 1 || i === pages || Math.abs(i - page) <= 1) {
-        nums.push(i);
-      } else if (Math.abs(i - page) === 2) {
-        nums.push('...');
-      }
-    }
-    // de-duplicate consecutive '...'
-    return nums.filter((n, idx) => !(n === '...' && nums[idx - 1] === '...'));
-  };
-
   return (
-    <div className="flex items-center justify-between py-4 flex-wrap gap-2">
-      <p className="text-xs text-slate-400 font-bold">
-        الصفحة <span className="text-slate-700">{page}</span> من <span className="text-slate-700">{pages}</span>
-        {' '}·{' '}
-        إجمالي <span className="text-slate-700">{total}</span> عنصر
+    <div className="flex items-center justify-between py-5 mt-4 border-t border-slate-200">
+      <p className="text-sm text-slate-500 font-bold">
+        الصفحة الحالية: <span className="text-slate-800 font-black px-1">{page}</span>
       </p>
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-3">
         <button
-          className={page <= 1 ? disabled : normal}
-          disabled={page <= 1}
-          onClick={() => onChange(1)}
-          title="الصفحة الأولى"
-        >«</button>
-        <button
-          className={page <= 1 ? disabled : normal}
+          className={page <= 1 ? disabled : active}
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
-        >›</button>
-
-        {getPageNumbers().map((num, idx) => (
-          num === '...' ? (
-            <span key={`dots-${idx}`} className="text-slate-400 px-1 text-xs font-bold">…</span>
-          ) : (
-            <button
-              key={num}
-              className={num === page ? active : normal}
-              onClick={() => onChange(num)}
-            >
-              {num}
-            </button>
-          )
-        ))}
-
+        >
+          السابق
+        </button>
         <button
-          className={page >= pages ? disabled : normal}
-          disabled={page >= pages}
+          className={!hasNext ? disabled : active}
+          disabled={!hasNext}
           onClick={() => onChange(page + 1)}
-        >‹</button>
-        <button
-          className={page >= pages ? disabled : normal}
-          disabled={page >= pages}
-          onClick={() => onChange(pages)}
-          title="الصفحة الأخيرة"
-        >»</button>
+        >
+          التالي
+        </button>
       </div>
     </div>
   );

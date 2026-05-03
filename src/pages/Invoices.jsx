@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { SkeletonTable, EmptyState, ErrorState, Modal, Pagination, SearchableSelect, inputCls, labelCls, badgeCls } from '../components/UI';
 import { formatCurrency, formatDateTime } from '../utils/format';
 import { Plus, Trash2, Undo2, FileText as FileTextIcon, Eye, Printer } from 'lucide-react';
-import { printInvoice } from '../utils/print';
+import { printInvoice, printThermalInvoice } from '../utils/print';
 
 const PER_PAGE = 10;
 
@@ -53,16 +53,12 @@ export default function Invoices() {
 
 
   const loadData = useCallback(async () => {
-    if (invoices.length > 0 && !filterStatus && !filterMethod) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError(null);
-    let q = [];
+    let q = [`page=${page}`, `limit=${PER_PAGE}`];
     if (filterStatus) q.push(`status=${filterStatus}`);
     if (filterMethod) q.push(`paymentMethod=${filterMethod}`);
-    const qs = q.length ? '?' + q.join('&') : '';
+    const qs = '?' + q.join('&');
 
     const { data, error: apiError } = await invoicesAPI.getAll(qs);
     // 404 means "no invoices found" — treat as empty, not an error
@@ -74,14 +70,15 @@ export default function Invoices() {
       setInvoices(data?.data || []);
     }
     setLoading(false);
-  }, [filterStatus, filterMethod, setInvoices]);
+  }, [filterStatus, filterMethod, page, setInvoices]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const total = invoices.length;
-  const sliced = invoices.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  // No need to slice anymore as the backend handles pagination
+  const currentItems = invoices || [];
+  const hasNextPage = currentItems.length === PER_PAGE;
 
   const openCreate = async () => {
     if (products.length === 0) {
@@ -287,7 +284,7 @@ export default function Invoices() {
         <>
           {/* Mobile Cards View */}
           <div className="flex flex-col gap-3 md:hidden">
-            {sliced.map((inv, i) => (
+            {currentItems.map((inv, i) => (
               <div key={inv._id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-3">
                   <div>
@@ -352,7 +349,7 @@ export default function Invoices() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {sliced.map((inv, i) => (
+                {currentItems.map((inv, i) => (
                   <tr key={inv._id} onClick={(e) => {
                     if (e.target.closest('button') || e.target.closest('a')) return;
                     openDetail(inv);
@@ -397,7 +394,7 @@ export default function Invoices() {
         </>
       )}
 
-      {!loading && !error && <Pagination total={total} page={page} perPage={PER_PAGE} onChange={setPage} />}
+      {!loading && !error && <Pagination page={page} hasNext={hasNextPage} onChange={setPage} />}
 
       {/* Create Modal */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="إنشاء فاتورة جديدة" onConfirm={handleCreateSubmit} confirmText="إصدار الفاتورة" size="modal-xl">
@@ -584,13 +581,22 @@ export default function Invoices() {
                 <span className="text-black font-bold">|</span>
                 <span className="text-black font-bold font-mono tracking-widest text-lg" dir="ltr">01025210536 - 01158325071</span>
               </div>
-              <button 
-                onClick={() => printInvoice(currentInvoice)} 
-                className="flex items-center justify-center gap-2 bg-slate-800 text-white px-6 py-2.5 rounded-full font-bold hover:bg-slate-700 transition-colors shadow-sm w-full md:w-auto"
-              >
-                <Printer className="w-5 h-5" />
-                طباعة الفاتورة
-              </button>
+              <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                <button 
+                  onClick={() => printThermalInvoice(currentInvoice)} 
+                  className="flex items-center justify-center gap-2 bg-slate-100 text-slate-800 px-6 py-2.5 rounded-full font-bold hover:bg-slate-200 transition-colors shadow-sm w-full md:w-auto"
+                >
+                  <Printer className="w-5 h-5" />
+                  طباعة حرارية
+                </button>
+                <button 
+                  onClick={() => printInvoice(currentInvoice)} 
+                  className="flex items-center justify-center gap-2 bg-slate-800 text-white px-6 py-2.5 rounded-full font-bold hover:bg-slate-700 transition-colors shadow-sm w-full md:w-auto"
+                >
+                  <Printer className="w-5 h-5" />
+                  طباعة A4
+                </button>
+              </div>
             </div>
           </div>
         )}

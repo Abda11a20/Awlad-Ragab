@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-// Use /api proxy in production (Vercel rewrites forward it to backend server-side → no CORS)
-// Use direct URL in local development
+
 const isLocalDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
 const BASE = isLocalDev
   ? (import.meta.env.VITE_API_BASE_URL || 'https://mazen-warehouse.vercel.app')
@@ -12,7 +11,6 @@ const http = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// ← الباك يتوقع token في header وليس Authorization: Bearer
 http.interceptors.request.use((config) => {
   const token = localStorage.getItem('mz_token');
   if (token) config.headers['token'] = token;
@@ -50,11 +48,11 @@ export const dashboardAPI = {
 // PUT    /product/update/:productId
 // DELETE /product/delete/:productId
 export const productsAPI = {
-  getAll:  (q = '') => req(() => http.get(`/product${q}`)),
-  getById: (id)     => req(() => http.get(`/product/${id}`)),
-  create:  (data)   => req(() => http.post('/product/add', data)),
-  update:  (id, d)  => req(() => http.put(`/product/update/${id}`, d)),
-  delete:  (id)     => req(() => http.delete(`/product/delete/${id}`)),
+  getAll: (q = '') => req(() => http.get(`/product${q}`)),
+  getById: (id) => req(() => http.get(`/product/${id}`)),
+  create: (data) => req(() => http.post('/product/add', data)),
+  update: (id, d) => req(() => http.put(`/product/update/${id}`, d)),
+  delete: (id) => req(() => http.delete(`/product/delete/${id}`)),
 };
 
 // ── Customers ─────────────────────────────────────────
@@ -63,11 +61,11 @@ export const productsAPI = {
 // PUT    /customer/update/:customerId
 // DELETE /customer/delete/:customerId
 export const customersAPI = {
-  getAll:  (q = '') => req(() => http.get(`/customer${q}`)),
-  getById: (id)     => req(() => http.get(`/customer/${id}`)),
-  create:  (data)   => req(() => http.post('/customer/add', data)),
-  update:  (id, d)  => req(() => http.put(`/customer/update/${id}`, d)),
-  delete:  (id)     => req(() => http.delete(`/customer/delete/${id}`)),
+  getAll: (q = '') => req(() => http.get(`/customer${q}`)),
+  getById: (id) => req(() => http.get(`/customer/${id}`)),
+  create: (data) => req(() => http.post('/customer/add', data)),
+  update: (id, d) => req(() => http.put(`/customer/update/${id}`, d)),
+  delete: (id) => req(() => http.delete(`/customer/delete/${id}`)),
 };
 
 // ── Invoices ──────────────────────────────────────────
@@ -77,11 +75,11 @@ export const customersAPI = {
 // DELETE /invoice/delete/:invoiceId
 // GET    /invoice/pdf/:invoiceId
 export const invoicesAPI = {
-  getAll:    (q = '') => req(() => http.get(`/invoice${q}`)),
-  getById:   (id)     => req(() => http.get(`/invoice/${id}`)),
-  create:    (data)   => req(() => http.post('/invoice/create', data)),
-  refund:    (id, d)  => req(() => http.put(`/invoice/refund/${id}`, d)),
-  delete:    (id)     => req(() => http.delete(`/invoice/delete/${id}`)),
+  getAll: (q = '') => req(() => http.get(`/invoice${q}`)),
+  getById: (id) => req(() => http.get(`/invoice/${id}`)),
+  create: (data) => req(() => http.post('/invoice/create', data)),
+  refund: (id, d) => req(() => http.put(`/invoice/refund/${id}`, d)),
+  delete: (id) => req(() => http.delete(`/invoice/delete/${id}`)),
   getCustomerInvoices: (customerId) => req(() => http.get(`/invoice/customer/${customerId}/details`)),
 };
 

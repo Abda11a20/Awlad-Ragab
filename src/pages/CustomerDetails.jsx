@@ -6,7 +6,7 @@ import useStore from '../store';
 import { formatCurrency, formatDateTime } from '../utils/format';
 import { ArrowRight, User, Phone, Mail, MapPin, Building, CreditCard, FileText, Activity, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { printInvoice } from '../utils/print';
+import { printInvoice, printThermalInvoice } from '../utils/print';
 
 const STATUS_MAP = {
   paid:    { label: 'مدفوعة',  cls: badgeCls.success },
@@ -80,25 +80,17 @@ export default function CustomerDetails() {
 
     let cInvoices = [];
 
-    // Strategy 1: Use specific customer invoices endpoint if it works
-    const { data: invRes } = await invoicesAPI.getCustomerInvoices(id);
-    if (invRes?.data && Array.isArray(invRes.data)) {
-      cInvoices = invRes.data;
-    } 
-    else if (invRes?.data?.invoices && Array.isArray(invRes.data.invoices)) {
+    // Use specific customer invoices endpoint
+    const { data: invRes, error: invErr } = await invoicesAPI.getCustomerInvoices(id);
+    
+    if (invRes?.data?.invoices && Array.isArray(invRes.data.invoices)) {
       cInvoices = invRes.data.invoices;
-    } 
-    else {
-      // Strategy 2: Filter from cache or fetch all
-      let allInvoices = invoices;
-      if (allInvoices.length === 0) {
-        const { data: allInvData } = await invoicesAPI.getAll();
-        allInvoices = allInvData?.data || [];
-      }
-      
-      cInvoices = allInvoices.filter(inv => 
-        (inv.customerId?._id === id) || (inv.customerId === id)
-      );
+    } else if (invRes?.data && Array.isArray(invRes.data)) {
+      cInvoices = invRes.data;
+    } else if (invErr) {
+      // If it's a 404 or other error, it might mean the customer has no invoices
+      cInvoices = [];
+      console.warn("Failed to fetch customer invoices:", invErr);
     }
 
     const totalAmount = cInvoices.reduce((sum, i) => sum + (i.totalAmount || 0), 0);
@@ -438,13 +430,22 @@ export default function CustomerDetails() {
                 <span className="text-black font-bold">|</span>
                 <span className="text-black font-bold font-mono tracking-widest text-lg" dir="ltr">01025210536 - 01158325071</span>
               </div>
-              <button 
-                onClick={() => printInvoice(currentInvoice)} 
-                className="flex items-center justify-center gap-2 bg-slate-800 text-white px-6 py-2.5 rounded-full font-bold hover:bg-slate-700 transition-colors shadow-sm w-full md:w-auto"
-              >
-                <Printer className="w-5 h-5" />
-                طباعة الفاتورة
-              </button>
+              <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                <button 
+                  onClick={() => printThermalInvoice(currentInvoice)} 
+                  className="flex items-center justify-center gap-2 bg-slate-100 text-slate-800 px-6 py-2.5 rounded-full font-bold hover:bg-slate-200 transition-colors shadow-sm w-full md:w-auto"
+                >
+                  <Printer className="w-5 h-5" />
+                  طباعة حرارية
+                </button>
+                <button 
+                  onClick={() => printInvoice(currentInvoice)} 
+                  className="flex items-center justify-center gap-2 bg-slate-800 text-white px-6 py-2.5 rounded-full font-bold hover:bg-slate-700 transition-colors shadow-sm w-full md:w-auto"
+                >
+                  <Printer className="w-5 h-5" />
+                  طباعة A4
+                </button>
+              </div>
             </div>
           </div>
         )}

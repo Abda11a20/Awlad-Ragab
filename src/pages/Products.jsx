@@ -14,6 +14,7 @@ export default function Products() {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -22,14 +23,12 @@ export default function Products() {
     name: '', description: '', unitPrice: '', unitsPerBox: '12', retailPrice: '', stockBoxes: '', stockPieces: ''
   });
 
-  const loadData = useCallback(async (search = '') => {
-    if (products.length > 0 && !search) {
-      setLoading(false);
-      return;
-    }
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const q = search ? `?name=${encodeURIComponent(search)}` : '';
+    let qParams = [`page=${page}`, `limit=${PER_PAGE}`];
+    if (debouncedSearch) qParams.push(`name=${encodeURIComponent(debouncedSearch)}`);
+    const q = '?' + qParams.join('&');
     const { data, error: apiError } = await productsAPI.getAll(q);
 
     // 404 means "no products found" — treat as empty, not an error
@@ -41,18 +40,23 @@ export default function Products() {
       setProducts(data?.data || []);
     }
     setLoading(false);
-  }, [setProducts]);
+  }, [page, debouncedSearch, setProducts]);
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      setPage(1);
-      loadData(searchTerm);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      if (searchTerm !== debouncedSearch) setPage(1);
     }, 400);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, loadData]);
+    return () => clearTimeout(timer);
+  }, [searchTerm, debouncedSearch]);
 
-  const total = products.length;
-  const sliced = products.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Backend handles pagination
+  const currentItems = products || [];
+  const hasNextPage = currentItems.length === PER_PAGE;
 
   const openAdd = () => {
     setCurrentId(null);
@@ -150,7 +154,7 @@ export default function Products() {
         <>
           {/* Mobile Cards View */}
           <div className="flex flex-col gap-3 md:hidden">
-            {sliced.map((p, i) => (
+            {currentItems.map((p, i) => (
               <div key={p._id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
@@ -211,7 +215,7 @@ export default function Products() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {sliced.map((p, i) => (
+                {currentItems.map((p, i) => (
                   <tr key={p._id} className="hover:bg-slate-50 transition-colors group">
                     <td className="px-5 py-4 text-center text-slate-500 font-bold">{(page - 1) * PER_PAGE + i + 1}</td>
                     <td className="px-5 py-4">
@@ -252,7 +256,7 @@ export default function Products() {
         </>
       )}
 
-      {!loading && !error && <Pagination total={total} page={page} perPage={PER_PAGE} onChange={setPage} />}
+      {!loading && !error && <Pagination page={page} hasNext={hasNextPage} onChange={setPage} />}
 
       <Modal
         isOpen={isModalOpen}
