@@ -190,7 +190,7 @@ export function printThermalInvoice(invoice) {
     const returned = qty === 0 ? ' <span style="font-size:13px;">(مُرجَع)</span>' : '';
     const rowStyle = qty === 0 ? 'opacity:0.45;' : '';
     return `
-      <tr style="border-bottom:1px dashed #ccc;${rowStyle}">
+      <tr style="border-bottom:1px dashed #000;${rowStyle}">
         <td style="padding:6px 1px;font-weight:bold;font-size:15px;">${name}${returned}</td>
         <td style="padding:6px 1px;text-align:center;font-size:15px;">${qty}</td>
         <td style="padding:6px 1px;text-align:center;font-size:14px;">${fmt(price)}</td>
