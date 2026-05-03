@@ -204,16 +204,16 @@ export function printThermalInvoice(invoice) {
   <meta charset="UTF-8">
   <title>فاتورة #${invId}</title>
   <style>
-    @page { size: 80mm auto; margin: 0; }
-    @media print { body { padding: 2px; } }
+    /* 79mm is exactly standard for 80mm paper, height is arbitrary long to avoid pagination early */
+    @page { size: 79mm 400mm; margin: 0; }
+    @media print { body { padding: 0; margin: 0; } }
     *{margin:0;padding:0;box-sizing:border-box}
     body{
       font-family: Tahoma, Arial, sans-serif;
       background:#fff;
       color:#000;
       width: 100%;
-      max-width: 80mm;
-      padding: 3px;
+      padding: 5px;
       margin: 0;
       direction:rtl;
       font-size:16px;
@@ -287,7 +287,7 @@ export function printThermalInvoice(invoice) {
   iframe.style.position = 'fixed';
   iframe.style.left = '-9999px';
   iframe.style.top = '0';
-  iframe.style.width = '302px';
+  iframe.style.width = '100%';
   iframe.style.height = '1px';
   iframe.style.border = 'none';
   iframe.style.opacity = '0';
