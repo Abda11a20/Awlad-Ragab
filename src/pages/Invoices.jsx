@@ -82,15 +82,16 @@ export default function Invoices() {
   const hasNextPage = currentItems.length === PER_PAGE;
 
   const openCreate = async () => {
-    // Load ALL products by paginating through every page
+    // Load ALL products by paginating through every page (backend returns 10 per page)
+    const BACKEND_LIMIT = 10;
     let allProducts = [];
     let pg = 1;
     let more = true;
     while (more) {
-      const { data } = await productsAPI.getAll(`?page=${pg}&limit=50`);
+      const { data } = await productsAPI.getAll(`?page=${pg}&limit=${BACKEND_LIMIT}`);
       if (data?.data && data.data.length > 0) {
         allProducts = [...allProducts, ...data.data];
-        more = data.data.length === 50;
+        more = data.data.length === BACKEND_LIMIT; // if less than limit, it's the last page
         pg++;
       } else {
         more = false;
@@ -103,10 +104,10 @@ export default function Invoices() {
     pg = 1;
     more = true;
     while (more) {
-      const { data } = await customersAPI.getAll(`?page=${pg}&limit=50`);
+      const { data } = await customersAPI.getAll(`?page=${pg}&limit=${BACKEND_LIMIT}`);
       if (data?.data && data.data.length > 0) {
         allCustomers = [...allCustomers, ...data.data];
-        more = data.data.length === 50;
+        more = data.data.length === BACKEND_LIMIT;
         pg++;
       } else {
         more = false;

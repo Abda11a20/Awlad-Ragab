@@ -204,29 +204,36 @@ export function printThermalInvoice(invoice) {
   <meta charset="UTF-8">
   <title>فاتورة #${invId}</title>
   <style>
-    /* 79mm is exactly standard for 80mm paper, height is arbitrary long to avoid pagination early */
-    @page { size: 79mm 400mm; margin: 0; }
-    @media print { body { padding: 0; margin: 0; } }
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{
-      font-family: Tahoma, Arial, sans-serif;
-      background:#fff;
-      color:#000;
-      width: 100%;
-      padding: 5px;
-      margin: 0;
-      direction:rtl;
-      font-size:16px;
-      line-height:1.5;
+    @page {
+      size: 79mm auto;
+      margin: 0mm !important;
     }
-    h1,h2,h3,p{margin:0}
-    table{width:100%;border-collapse:collapse}
-    .text-center{text-align:center}
-    .flex-between{display:flex;justify-content:space-between;align-items:center}
-    .mb{margin-bottom:6px}
-    .font-bold{font-weight:bold}
-    .sep{border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:8px}
-    .sep-top{border-top:2px dashed #000;padding-top:8px;margin-top:8px}
+    @media print {
+      html, body { margin: 0 !important; padding: 0 !important; width: 79mm !important; }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { width: 79mm; }
+    body {
+      font-family: Tahoma, Arial, sans-serif;
+      background: #fff;
+      color: #000;
+      width: 79mm;
+      max-width: 79mm;
+      margin: 0;
+      padding: 2px 3px;
+      direction: rtl;
+      font-size: 16px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+    h1,h2,h3,p { margin: 0; }
+    table { width: 100%; border-collapse: collapse; }
+    .text-center { text-align: center; }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .mb { margin-bottom: 6px; }
+    .font-bold { font-weight: bold; }
+    .sep { border-bottom: 2px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
+    .sep-top { border-top: 2px dashed #000; padding-top: 8px; margin-top: 8px; }
   </style>
 </head>
 <body>

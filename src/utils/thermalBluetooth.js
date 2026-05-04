@@ -206,16 +206,16 @@ function renderReceiptCanvas(invoice) {
 
   // ─── Calculate height ───
   let h = 0;
-  h += 180;                   // header block
-  h += 15;                    // separator
-  h += 45 * 4;               // info lines (4 lines)
-  if (invoice.customerId?.phone) h += 45;
-  h += 15;                    // separator
-  h += items.length * 100;   // items
-  h += 15;                    // separator
-  h += 45 * 5 + 30;          // totals (5 lines + padding)
-  h += 15;                    // separator
-  h += 130;                   // footer
+  h += 200;                   // header block
+  h += 20;                    // separator
+  h += 50 * 4;               // info lines (4 lines)
+  if (invoice.customerId?.phone) h += 50;
+  h += 20;                    // separator
+  h += items.length * 80;    // items (no per-row separators)
+  h += 20;                    // separator
+  h += 50 * 5 + 30;          // totals (5 lines + padding)
+  h += 20;                    // separator
+  h += 150;                   // footer
   h += 40;                    // margin bottom
 
   // ─── Create canvas ───
@@ -237,19 +237,17 @@ function renderReceiptCanvas(invoice) {
     ctx.textAlign = 'center';
     ctx.direction = 'rtl';
     ctx.fillText(text, W / 2, y);
-    y += fontSize + 10;
+    y += fontSize + 12;
   }
 
   function drawBetween(labelR, valueL, fontSize, bold = false) {
     ctx.font = `${bold ? 'bold ' : ''}${fontSize}px Tahoma, Arial, sans-serif`;
     ctx.direction = 'rtl';
-    // Label on right
     ctx.textAlign = 'right';
     ctx.fillText(labelR, W - PAD, y);
-    // Value on left
     ctx.textAlign = 'left';
     ctx.fillText(valueL, PAD, y);
-    y += fontSize + 12;
+    y += fontSize + 14;
   }
 
   function drawDashedLine() {
@@ -273,45 +271,45 @@ function renderReceiptCanvas(invoice) {
   }
 
   // ─── HEADER ───
-  y += 10;
-  drawCenter('شركة مارس', 40, true);
-  drawCenter('شركة أولاد رجب', 32, true);
-  y += 6;
-  drawCenter(`فاتورة رقم #${invId}`, 24, true);
-  drawCenter(fmtDate(invoice.createdAt), 20, true);
+  y += 14;
+  drawCenter('شركة مارس', 44, true);
+  drawCenter('شركة أولاد رجب', 34, true);
+  y += 8;
+  drawCenter(`فاتورة رقم #${invId}`, 26, true);
+  drawCenter(fmtDate(invoice.createdAt), 22, true);
   drawDashedLine();
 
   // ─── INFO ───
-  drawBetween('العميل:', invoice.customerId?.name || 'عميل نقدي', 24, true);
+  drawBetween('العميل:', invoice.customerId?.name || 'عميل نقدي', 26, true);
   if (invoice.customerId?.phone) {
-    drawBetween('الجوال:', invoice.customerId.phone, 24, true);
+    drawBetween('الجوال:', invoice.customerId.phone, 26, true);
   }
-  drawBetween('الدفع:', METHOD[invoice.paymentMethod] || invoice.paymentMethod || '', 24, true);
-  drawBetween('الحالة:', STATUS[invoice.status] || invoice.status || '', 24, true);
+  drawBetween('الدفع:', METHOD[invoice.paymentMethod] || invoice.paymentMethod || '', 26, true);
+  drawBetween('الحالة:', STATUS[invoice.status] || invoice.status || '', 26, true);
   drawDashedLine();
 
   // ─── ITEMS TABLE ───
   // Table header
-  const colX = [W - PAD, W * 0.55, W * 0.35, PAD]; // right-to-left column positions
-  ctx.font = 'bold 22px Tahoma, Arial, sans-serif';
+  const colX = [W - PAD, W * 0.55, W * 0.35, PAD];
+  ctx.font = 'bold 24px Tahoma, Arial, sans-serif';
   ctx.textAlign = 'right';
   ctx.fillText('المنتج', colX[0], y);
   ctx.textAlign = 'center';
-  ctx.fillText('الكمية', colX[1], y);
-  ctx.fillText('سعر الوحدة', colX[2], y);
+  ctx.fillText('كم', colX[1], y);
+  ctx.fillText('سعر', colX[2], y);
   ctx.textAlign = 'left';
-  ctx.fillText('الإجمالي', colX[3], y);
-  y += 12;
-  // Header line
+  ctx.fillText('إجمالي', colX[3], y);
+  y += 14;
+  // One solid line under header
   ctx.beginPath();
   ctx.moveTo(PAD, y);
   ctx.lineTo(W - PAD, y);
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.lineWidth = 1;
-  y += 16;
+  y += 18;
 
-  // Table rows
+  // Table rows — NO per-row separators
   items.forEach((it) => {
     const name = it.productId?.name || 'منتج محذوف';
     const qty = it.quantity || 0;
@@ -320,57 +318,47 @@ function renderReceiptCanvas(invoice) {
 
     if (qty === 0) ctx.globalAlpha = 0.45;
 
-    ctx.font = 'bold 22px Tahoma, Arial, sans-serif';
+    ctx.font = 'bold 24px Tahoma, Arial, sans-serif';
     ctx.textAlign = 'right';
     ctx.direction = 'rtl';
     ctx.fillText(name + (qty === 0 ? ' (مُرجَع)' : ''), colX[0], y);
 
-    ctx.font = 'bold 20px Tahoma, Arial, sans-serif';
+    ctx.font = 'bold 22px Tahoma, Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${qty} قطعة`, colX[1], y);
-
-    ctx.font = 'bold 18px monospace';
-    ctx.fillText(fmt(price), colX[2], y);
+    ctx.fillText(`${qty}`, colX[1], y);
 
     ctx.font = 'bold 20px monospace';
+    ctx.fillText(fmt(price), colX[2], y);
+
+    ctx.font = 'bold 22px monospace';
     ctx.textAlign = 'left';
     ctx.fillText(fmt(total), colX[3], y);
 
     ctx.globalAlpha = 1;
-    y += 12;
-
-    // Row separator
-    ctx.setLineDash([2, 3]);
-    ctx.beginPath();
-    ctx.moveTo(PAD, y);
-    ctx.lineTo(W - PAD, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    y += 16;
+    y += 80; // space between rows, no line
   });
 
   drawDashedLine();
 
   // ─── TOTALS ───
-  drawBetween('الإجمالي الفرعي:', fmt(invoice.subTotal), 24, true);
-  drawBetween('الخصم:', fmt(invoice.discount), 24, true);
+  drawBetween('الإجمالي الفرعي:', fmt(invoice.subTotal), 26, true);
+  drawBetween('الخصم:', fmt(invoice.discount), 26, true);
   drawSolidLine();
-  drawBetween('الصافي:', fmt(invoice.totalAmount), 32, true);
-  y += 6;
-  drawBetween('المدفوع:', fmt(invoice.paidAmount), 24, true);
-  drawBetween('المتبقي:', fmt(invoice.dueAmount), 26, true);
+  drawBetween('الصافي:', fmt(invoice.totalAmount), 34, true);
+  y += 8;
+  drawBetween('المدفوع:', fmt(invoice.paidAmount), 26, true);
+  drawBetween('المتبقي:', fmt(invoice.dueAmount), 28, true);
   drawDashedLine();
 
   // ─── FOOTER ───
-  y += 10;
-  drawCenter('مازن رجب', 30, true);
-  // Phone numbers (LTR)
-  ctx.font = 'bold 24px monospace';
+  y += 12;
+  drawCenter('مازن رجب', 32, true);
+  ctx.font = 'bold 26px monospace';
   ctx.textAlign = 'center';
   ctx.direction = 'ltr';
   ctx.fillText('01025210536 - 01158325071', W / 2, y);
-  y += 40;
-  drawCenter('شكراً لتعاملكم معنا', 22, true);
+  y += 44;
+  drawCenter('شكراً لتعاملكم معنا', 24, true);
 
   return canvas;
 }
