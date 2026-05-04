@@ -6,7 +6,7 @@ import { SkeletonTable, EmptyState, ErrorState, Modal, Pagination, SearchableSel
 import { formatCurrency, formatDateTime } from '../utils/format';
 import { Plus, Trash2, Undo2, FileText as FileTextIcon, Eye, Printer, Bluetooth } from 'lucide-react';
 import { printInvoice, printThermalInvoice } from '../utils/print';
-import { isBleSupported, isConnected as isBleConnected, printThermalDirect, connectPrinter, getDeviceName } from '../utils/thermalBluetooth';
+import { isBleSupported, isConnected as isBleConnected, printThermalDirect, connectPrinter, getDeviceName, shareInvoiceToRawBT } from '../utils/thermalBluetooth';
 
 const PER_PAGE = 10;
 
@@ -82,15 +82,38 @@ export default function Invoices() {
   const hasNextPage = currentItems.length === PER_PAGE;
 
   const openCreate = async () => {
-    if (products.length === 0) {
-      const { data } = await productsAPI.getAll();
-      if (data?.data) setProducts(data.data);
+    // Load ALL products by paginating through every page
+    let allProducts = [];
+    let pg = 1;
+    let more = true;
+    while (more) {
+      const { data } = await productsAPI.getAll(`?page=${pg}&limit=50`);
+      if (data?.data && data.data.length > 0) {
+        allProducts = [...allProducts, ...data.data];
+        more = data.data.length === 50;
+        pg++;
+      } else {
+        more = false;
+      }
     }
-    if (customers.length === 0) {
-      const { data } = await customersAPI.getAll();
-      // data may be null if backend returns 404 (no customers yet) — that's fine
-      if (data?.data) setCustomers(data.data);
+    if (allProducts.length > 0) setProducts(allProducts);
+
+    // Load ALL customers by paginating through every page
+    let allCustomers = [];
+    pg = 1;
+    more = true;
+    while (more) {
+      const { data } = await customersAPI.getAll(`?page=${pg}&limit=50`);
+      if (data?.data && data.data.length > 0) {
+        allCustomers = [...allCustomers, ...data.data];
+        more = data.data.length === 50;
+        pg++;
+      } else {
+        more = false;
+      }
     }
+    if (allCustomers.length > 0) setCustomers(allCustomers);
+
     setCreateData({ customerId: '', paymentMethod: 'cash', discount: 0, paidAmount: 0, items: [{ productId: '', quantity: 1, unitPrice: 0 }] });
     setIsCreateOpen(true);
   };
@@ -136,21 +159,23 @@ export default function Invoices() {
 
     const { subtotal, discount, total, paid } = calculateCreateTotals();
 
-    // Backend model: dueAmount must be >= 0, so paidAmount cannot exceed totalAmount
-    if (paid > total) {
-      return toast.error(`المبلغ المدفوع (${formatCurrency(paid)}) لا يمكن أن يتجاوز إجمالي الفاتورة (${formatCurrency(total)})`);
+    // Backend model: allows paying up to 2 pounds extra to handle piaster issues
+    if (paid > total + 2) {
+      return toast.error(`المبلغ المدفوع (${formatCurrency(paid)}) يتجاوز إجمالي الفاتورة بحد غير مسموح. أقصى زيادة مسموحة هي 2 جنيه`);
     }
+
+    // Cap paidAmount to totalAmount to prevent negative dueAmount on backend
+    const safePaid = Math.round(Math.min(paid, total) * 100) / 100;
 
     const payload = {
       customerId: createData.customerId || undefined,
       paymentMethod: createData.paymentMethod,
-      discount: discount,
-      paidAmount: paid,
-      // parse to numbers to avoid validation issues with string values
+      discount: Math.round(discount * 100) / 100,
+      paidAmount: safePaid,
       items: validItems.map(i => ({
         productId: i.productId,
         quantity: parseInt(i.quantity),
-        unitPrice: parseFloat(i.unitPrice),
+        unitPrice: Math.round(parseFloat(i.unitPrice) * 100) / 100,
       })),
     };
 
@@ -481,15 +506,15 @@ export default function Invoices() {
             <div className="flex justify-between text-sm text-slate-500 font-bold"><span>الخصم:</span><span className="font-mono text-slate-800">{formatCurrency(totals.discount)}</span></div>
             <div className="flex justify-between font-bold text-slate-800 mt-1 pt-2 border-t border-slate-200"><span>الإجمالي:</span><span className="font-mono text-emerald-600">{formatCurrency(totals.total)}</span></div>
             <div className="flex justify-between text-sm text-slate-500 font-bold"><span>المدفوع:</span><span className="font-mono text-slate-800">{formatCurrency(totals.paid)}</span></div>
-            <div className={`flex justify-between font-bold mt-1 pt-2 border-t ${totals.due < 0 ? 'border-red-200' : 'border-slate-200'}`}>
+            <div className={`flex justify-between font-bold mt-1 pt-2 border-t ${totals.due < -2 ? 'border-red-200' : 'border-slate-200'}`}>
               <span>المتبقي:</span>
-              <span className={`font-mono ${totals.due > 0 ? 'text-red-500' : totals.due === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                {totals.due < 0 ? '⚠ خطأ' : formatCurrency(totals.due)}
+              <span className={`font-mono ${totals.due > 0 ? 'text-red-500' : totals.due >= -2 && totals.due <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {totals.due < -2 ? '⚠ تجاوز الحد' : formatCurrency(totals.due)}
               </span>
             </div>
-            {totals.due < 0 && (
+            {totals.due < -2 && (
               <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-red-600 text-xs text-center font-bold">
-                المبلغ المدفوع يتجاوز إجمالي الفاتورة — قلل المدفوع أو راجع الأسعار
+                المبلغ المدفوع يتجاوز إجمالي الفاتورة بحد غير مسموح — راجع المدفوع (أقصى زيادة 2 جنيه)
               </div>
             )}
           </div>
@@ -608,6 +633,13 @@ export default function Invoices() {
                 >
                   <Printer className="w-5 h-5" />
                   طباعة الفاتورة
+                </button>
+                <button 
+                  onClick={() => shareInvoiceToRawBT(currentInvoice)} 
+                  className="flex items-center justify-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-full font-bold hover:bg-emerald-700 transition-colors shadow-sm w-full md:w-auto"
+                >
+                  <Printer className="w-5 h-5" />
+                  طباعة عبر RawBT
                 </button>
               </div>
             </div>

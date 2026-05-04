@@ -206,16 +206,16 @@ function renderReceiptCanvas(invoice) {
 
   // ─── Calculate height ───
   let h = 0;
-  h += 140;                   // header block
+  h += 180;                   // header block
   h += 15;                    // separator
-  h += 35 * 4;               // info lines (4 lines)
-  if (invoice.customerId?.phone) h += 35;
+  h += 45 * 4;               // info lines (4 lines)
+  if (invoice.customerId?.phone) h += 45;
   h += 15;                    // separator
-  h += items.length * 70;    // items
+  h += items.length * 100;   // items
   h += 15;                    // separator
-  h += 35 * 5 + 20;          // totals (5 lines + padding)
+  h += 45 * 5 + 30;          // totals (5 lines + padding)
   h += 15;                    // separator
-  h += 100;                   // footer
+  h += 130;                   // footer
   h += 40;                    // margin bottom
 
   // ─── Create canvas ───
@@ -237,7 +237,7 @@ function renderReceiptCanvas(invoice) {
     ctx.textAlign = 'center';
     ctx.direction = 'rtl';
     ctx.fillText(text, W / 2, y);
-    y += fontSize + 8;
+    y += fontSize + 10;
   }
 
   function drawBetween(labelR, valueL, fontSize, bold = false) {
@@ -249,7 +249,7 @@ function renderReceiptCanvas(invoice) {
     // Value on left
     ctx.textAlign = 'left';
     ctx.fillText(valueL, PAD, y);
-    y += fontSize + 10;
+    y += fontSize + 12;
   }
 
   function drawDashedLine() {
@@ -274,26 +274,26 @@ function renderReceiptCanvas(invoice) {
 
   // ─── HEADER ───
   y += 10;
-  drawCenter('شركة مارس', 28, true);
-  drawCenter('شركة أولاد رجب', 22, true);
-  y += 4;
-  drawCenter(`فاتورة رقم #${invId}`, 18, true);
-  drawCenter(fmtDate(invoice.createdAt), 14);
+  drawCenter('شركة مارس', 40, true);
+  drawCenter('شركة أولاد رجب', 32, true);
+  y += 6;
+  drawCenter(`فاتورة رقم #${invId}`, 24, true);
+  drawCenter(fmtDate(invoice.createdAt), 20, true);
   drawDashedLine();
 
   // ─── INFO ───
-  drawBetween('العميل:', invoice.customerId?.name || 'عميل نقدي', 16, true);
+  drawBetween('العميل:', invoice.customerId?.name || 'عميل نقدي', 24, true);
   if (invoice.customerId?.phone) {
-    drawBetween('الجوال:', invoice.customerId.phone, 16);
+    drawBetween('الجوال:', invoice.customerId.phone, 24, true);
   }
-  drawBetween('الدفع:', METHOD[invoice.paymentMethod] || invoice.paymentMethod || '', 16, true);
-  drawBetween('الحالة:', STATUS[invoice.status] || invoice.status || '', 16, true);
+  drawBetween('الدفع:', METHOD[invoice.paymentMethod] || invoice.paymentMethod || '', 24, true);
+  drawBetween('الحالة:', STATUS[invoice.status] || invoice.status || '', 24, true);
   drawDashedLine();
 
   // ─── ITEMS TABLE ───
   // Table header
   const colX = [W - PAD, W * 0.55, W * 0.35, PAD]; // right-to-left column positions
-  ctx.font = 'bold 14px Tahoma, Arial, sans-serif';
+  ctx.font = 'bold 22px Tahoma, Arial, sans-serif';
   ctx.textAlign = 'right';
   ctx.fillText('المنتج', colX[0], y);
   ctx.textAlign = 'center';
@@ -301,7 +301,7 @@ function renderReceiptCanvas(invoice) {
   ctx.fillText('سعر الوحدة', colX[2], y);
   ctx.textAlign = 'left';
   ctx.fillText('الإجمالي', colX[3], y);
-  y += 8;
+  y += 12;
   // Header line
   ctx.beginPath();
   ctx.moveTo(PAD, y);
@@ -309,7 +309,7 @@ function renderReceiptCanvas(invoice) {
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.lineWidth = 1;
-  y += 10;
+  y += 16;
 
   // Table rows
   items.forEach((it) => {
@@ -320,24 +320,24 @@ function renderReceiptCanvas(invoice) {
 
     if (qty === 0) ctx.globalAlpha = 0.45;
 
-    ctx.font = 'bold 13px Tahoma, Arial, sans-serif';
+    ctx.font = 'bold 22px Tahoma, Arial, sans-serif';
     ctx.textAlign = 'right';
     ctx.direction = 'rtl';
     ctx.fillText(name + (qty === 0 ? ' (مُرجَع)' : ''), colX[0], y);
 
-    ctx.font = '13px Tahoma, Arial, sans-serif';
+    ctx.font = 'bold 20px Tahoma, Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`${qty} قطعة`, colX[1], y);
 
-    ctx.font = '12px monospace';
+    ctx.font = 'bold 18px monospace';
     ctx.fillText(fmt(price), colX[2], y);
 
-    ctx.font = 'bold 12px monospace';
+    ctx.font = 'bold 20px monospace';
     ctx.textAlign = 'left';
     ctx.fillText(fmt(total), colX[3], y);
 
     ctx.globalAlpha = 1;
-    y += 6;
+    y += 12;
 
     // Row separator
     ctx.setLineDash([2, 3]);
@@ -346,31 +346,65 @@ function renderReceiptCanvas(invoice) {
     ctx.lineTo(W - PAD, y);
     ctx.stroke();
     ctx.setLineDash([]);
-    y += 10;
+    y += 16;
   });
 
   drawDashedLine();
 
   // ─── TOTALS ───
-  drawBetween('الإجمالي الفرعي:', fmt(invoice.subTotal), 15);
-  drawBetween('الخصم:', fmt(invoice.discount), 15);
+  drawBetween('الإجمالي الفرعي:', fmt(invoice.subTotal), 24, true);
+  drawBetween('الخصم:', fmt(invoice.discount), 24, true);
   drawSolidLine();
-  drawBetween('الصافي:', fmt(invoice.totalAmount), 20, true);
-  y += 4;
-  drawBetween('المدفوع:', fmt(invoice.paidAmount), 15);
-  drawBetween('المتبقي:', fmt(invoice.dueAmount), 16, true);
+  drawBetween('الصافي:', fmt(invoice.totalAmount), 32, true);
+  y += 6;
+  drawBetween('المدفوع:', fmt(invoice.paidAmount), 24, true);
+  drawBetween('المتبقي:', fmt(invoice.dueAmount), 26, true);
   drawDashedLine();
 
   // ─── FOOTER ───
-  y += 4;
-  drawCenter('مازن رجب', 20, true);
+  y += 10;
+  drawCenter('مازن رجب', 30, true);
   // Phone numbers (LTR)
-  ctx.font = '16px monospace';
+  ctx.font = 'bold 24px monospace';
   ctx.textAlign = 'center';
   ctx.direction = 'ltr';
   ctx.fillText('01025210536 - 01158325071', W / 2, y);
-  y += 30;
-  drawCenter('شكراً لتعاملكم معنا', 14);
+  y += 40;
+  drawCenter('شكراً لتعاملكم معنا', 22, true);
 
   return canvas;
+}
+
+// ─── RawBT Sharing ───
+
+/**
+ * Share invoice to RawBT app via Web Share API
+ */
+export async function shareInvoiceToRawBT(invoice) {
+  try {
+    const canvas = renderReceiptCanvas(invoice);
+    const dataUrl = canvas.toDataURL('image/png');
+    
+    // Convert base64 to Blob
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], 'invoice.png', { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: 'Invoice',
+        text: 'Print invoice',
+        files: [file]
+      });
+    } else {
+      // Fallback intent if share API fails or is not supported
+      window.location.href = 'intent://print#Intent;package=ru.a402d.rawbtprinter;end;';
+    }
+  } catch (error) {
+    console.error('Error sharing to RawBT:', error);
+    // Don't alert if user just cancelled the share sheet
+    if (error.name !== 'AbortError') {
+      window.location.href = 'intent://print#Intent;package=ru.a402d.rawbtprinter;end;';
+    }
+  }
 }

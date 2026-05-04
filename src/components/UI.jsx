@@ -232,7 +232,8 @@ export function Modal({ isOpen, onClose, title, children, onConfirm, confirmText
 }
 
 export function Pagination({ page, hasNext, onChange }) {
-  if (page <= 1 && !hasNext) return null;
+  // Always render the buttons as requested by the user, but keep them disabled if needed
+
 
   const btnBase = 'min-w-[6rem] h-10 px-4 rounded-xl text-sm font-bold transition-all border shadow-sm flex items-center justify-center gap-2';
   const active  = `${btnBase} bg-slate-800 border-slate-800 text-white hover:bg-slate-700`;

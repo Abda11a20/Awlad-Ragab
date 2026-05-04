@@ -7,7 +7,7 @@ import { formatCurrency, formatDateTime } from '../utils/format';
 import { ArrowRight, User, Phone, Mail, MapPin, Building, CreditCard, FileText, Activity, Printer, Bluetooth } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { printInvoice, printThermalInvoice } from '../utils/print';
-import { isBleSupported, isConnected as isBleConnected, printThermalDirect, getDeviceName } from '../utils/thermalBluetooth';
+import { isBleSupported, isConnected as isBleConnected, printThermalDirect, getDeviceName, shareInvoiceToRawBT } from '../utils/thermalBluetooth';
 
 const STATUS_MAP = {
   paid:    { label: 'مدفوعة',  cls: badgeCls.success },
@@ -451,6 +451,13 @@ export default function CustomerDetails() {
                 >
                   <Printer className="w-5 h-5" />
                   طباعة الفاتورة
+                </button>
+                <button 
+                  onClick={() => shareInvoiceToRawBT(currentInvoice)} 
+                  className="flex items-center justify-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-full font-bold hover:bg-emerald-700 transition-colors shadow-sm w-full md:w-auto"
+                >
+                  <Printer className="w-5 h-5" />
+                  طباعة عبر RawBT
                 </button>
               </div>
             </div>

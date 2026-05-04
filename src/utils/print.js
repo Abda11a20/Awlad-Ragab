@@ -130,15 +130,20 @@ export function printInvoice(invoice) {
 </body>
 </html>`;
 
-  // Use a hidden iframe instead of a new window for better mobile compatibility
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'absolute';
-  iframe.style.width = '0px';
-  iframe.style.height = '0px';
-  iframe.style.border = 'none';
-  iframe.style.visibility = 'hidden';
-  iframe.style.zIndex = '-1';
-  document.body.appendChild(iframe);
+  // Use a hidden iframe and reuse it to avoid blank PDF on slow saves
+  let iframe = document.getElementById('invoice-print-frame');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = 'invoice-print-frame';
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '0';
+    iframe.style.width = '1px';
+    iframe.style.height = '1px';
+    iframe.style.border = 'none';
+    iframe.style.opacity = '0';
+    document.body.appendChild(iframe);
+  }
 
   iframe.contentDocument.open();
   iframe.contentDocument.write(html);
@@ -152,12 +157,7 @@ export function printInvoice(invoice) {
     } catch (e) {
       console.error('Print failed', e);
     }
-    // Cleanup iframe after print dialog is closed
-    setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
-      }
-    }, 5000);
+    // Intentionally omitting iframe removal to allow PDF generation to complete in the background
   }, 600);
 }
 
@@ -187,14 +187,14 @@ export function printThermalInvoice(invoice) {
     const qty  = it.quantity || 0;
     const price = it.unitPrice || 0;
     const total = qty * price;
-    const returned = qty === 0 ? ' <span style="font-size:13px;">(مُرجَع)</span>' : '';
+    const returned = qty === 0 ? ' <span style="font-size:18px;">(مُرجَع)</span>' : '';
     const rowStyle = qty === 0 ? 'opacity:0.45;' : '';
     return `
       <tr style="border-bottom:1px dashed #000;${rowStyle}">
-        <td style="padding:6px 1px;font-weight:bold;font-size:15px;">${name}${returned}</td>
-        <td style="padding:6px 1px;text-align:center;font-size:15px;">${qty}</td>
-        <td style="padding:6px 1px;text-align:center;font-size:14px;">${fmt(price)}</td>
-        <td style="padding:6px 1px;text-align:center;font-weight:bold;font-size:14px;">${fmt(total)}</td>
+        <td style="padding:10px 1px;font-weight:bold;font-size:22px;">${name}${returned}</td>
+        <td style="padding:10px 1px;text-align:center;font-weight:bold;font-size:20px;">${qty}</td>
+        <td style="padding:10px 1px;text-align:center;font-weight:bold;font-size:18px;">${fmt(price)}</td>
+        <td style="padding:10px 1px;text-align:center;font-weight:bold;font-size:20px;">${fmt(total)}</td>
       </tr>`;
   }).join('');
 
@@ -233,18 +233,18 @@ export function printThermalInvoice(invoice) {
 
   <!-- Header -->
   <div class="text-center sep">
-    <h1 style="font-size:28px;font-weight:900;margin-bottom:4px;">شركة مارس</h1>
-    <h2 style="font-size:22px;font-weight:bold;margin-bottom:6px;">شركة أولاد رجب</h2>
-    <div style="font-size:18px;font-weight:bold;margin-bottom:4px;">فاتورة رقم #${invId}</div>
-    <div style="font-size:14px;">${fmtDate(invoice.createdAt)}</div>
+    <h1 style="font-size:40px;font-weight:900;margin-bottom:4px;">شركة مارس</h1>
+    <h2 style="font-size:32px;font-weight:bold;margin-bottom:6px;">شركة أولاد رجب</h2>
+    <div style="font-size:24px;font-weight:bold;margin-bottom:4px;">فاتورة رقم #${invId}</div>
+    <div style="font-size:20px;font-weight:bold;">${fmtDate(invoice.createdAt)}</div>
   </div>
 
   <!-- Info -->
   <div class="sep">
-    <div class="flex-between mb"><span class="font-bold" style="font-size:16px;">العميل:</span><span class="font-bold" style="font-size:16px;">${invoice.customerId?.name || 'عميل نقدي'}</span></div>
-    ${invoice.customerId?.phone ? `<div class="flex-between mb"><span class="font-bold" style="font-size:16px;">الجوال:</span><span style="font-size:16px;">${invoice.customerId.phone}</span></div>` : ''}
-    <div class="flex-between mb"><span class="font-bold" style="font-size:16px;">الدفع:</span><span class="font-bold" style="font-size:16px;">${METHOD[invoice.paymentMethod] || invoice.paymentMethod || ''}</span></div>
-    <div class="flex-between"><span class="font-bold" style="font-size:16px;">الحالة:</span><span class="font-bold" style="font-size:16px;">${STATUS[invoice.status] || invoice.status || ''}</span></div>
+    <div class="flex-between mb"><span class="font-bold" style="font-size:22px;">العميل:</span><span class="font-bold" style="font-size:22px;">${invoice.customerId?.name || 'عميل نقدي'}</span></div>
+    ${invoice.customerId?.phone ? `<div class="flex-between mb"><span class="font-bold" style="font-size:22px;">الجوال:</span><span class="font-bold" style="font-size:22px;">${invoice.customerId.phone}</span></div>` : ''}
+    <div class="flex-between mb"><span class="font-bold" style="font-size:22px;">الدفع:</span><span class="font-bold" style="font-size:22px;">${METHOD[invoice.paymentMethod] || invoice.paymentMethod || ''}</span></div>
+    <div class="flex-between"><span class="font-bold" style="font-size:22px;">الحالة:</span><span class="font-bold" style="font-size:22px;">${STATUS[invoice.status] || invoice.status || ''}</span></div>
   </div>
 
   <!-- Items Table -->
@@ -252,10 +252,10 @@ export function printThermalInvoice(invoice) {
     <table>
       <thead>
         <tr style="border-bottom:2px solid #000;">
-          <th style="padding:6px 1px;text-align:right;font-size:15px;">المنتج</th>
-          <th style="padding:6px 1px;text-align:center;font-size:15px;">الكمية</th>
-          <th style="padding:6px 1px;text-align:center;font-size:15px;">سعر الوحدة</th>
-          <th style="padding:6px 1px;text-align:center;font-size:15px;">الإجمالي</th>
+          <th style="padding:10px 1px;text-align:right;font-size:22px;">المنتج</th>
+          <th style="padding:10px 1px;text-align:center;font-size:22px;">الكمية</th>
+          <th style="padding:10px 1px;text-align:center;font-size:22px;">سعر الوحدة</th>
+          <th style="padding:10px 1px;text-align:center;font-size:22px;">الإجمالي</th>
         </tr>
       </thead>
       <tbody>${itemsRows}</tbody>
@@ -264,34 +264,38 @@ export function printThermalInvoice(invoice) {
 
   <!-- Totals -->
   <div class="sep-top sep">
-    <div class="flex-between mb"><span style="font-size:16px;">الإجمالي الفرعي:</span><span style="font-size:16px;">${fmt(invoice.subTotal)}</span></div>
-    <div class="flex-between mb"><span style="font-size:16px;">الخصم:</span><span style="font-size:16px;">${fmt(invoice.discount)}</span></div>
-    <div class="flex-between font-bold" style="font-size:22px;border-top:2px solid #000;padding-top:6px;margin:6px 0;">
+    <div class="flex-between mb"><span class="font-bold" style="font-size:22px;">الإجمالي الفرعي:</span><span class="font-bold" style="font-size:22px;">${fmt(invoice.subTotal)}</span></div>
+    <div class="flex-between mb"><span class="font-bold" style="font-size:22px;">الخصم:</span><span class="font-bold" style="font-size:22px;">${fmt(invoice.discount)}</span></div>
+    <div class="flex-between font-bold" style="font-size:32px;border-top:2px solid #000;padding-top:6px;margin:6px 0;">
       <span>الصافي:</span><span>${fmt(invoice.totalAmount)}</span>
     </div>
-    <div class="flex-between mb"><span style="font-size:16px;">المدفوع:</span><span style="font-size:16px;">${fmt(invoice.paidAmount)}</span></div>
-    <div class="flex-between font-bold" style="font-size:18px;"><span>المتبقي:</span><span>${fmt(invoice.dueAmount)}</span></div>
+    <div class="flex-between mb"><span class="font-bold" style="font-size:22px;">المدفوع:</span><span class="font-bold" style="font-size:22px;">${fmt(invoice.paidAmount)}</span></div>
+    <div class="flex-between font-bold" style="font-size:24px;"><span>المتبقي:</span><span>${fmt(invoice.dueAmount)}</span></div>
   </div>
 
   <!-- Footer -->
   <div class="text-center" style="margin-top:10px;">
-    <div style="font-weight:900;font-size:22px;margin-bottom:4px;">مازن رجب</div>
-    <div style="font-size:16px;direction:ltr;">01025210536 - 01158325071</div>
-    <div style="margin-top:12px;font-size:14px;">شكراً لتعاملكم معنا</div>
+    <div style="font-weight:900;font-size:30px;margin-bottom:4px;">مازن رجب</div>
+    <div style="font-weight:bold;font-size:24px;direction:ltr;">01025210536 - 01158325071</div>
+    <div style="margin-top:12px;font-weight:bold;font-size:20px;">شكراً لتعاملكم معنا</div>
   </div>
 
 </body>
 </html>`;
 
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.left = '-9999px';
-  iframe.style.top = '0';
-  iframe.style.width = '100%';
-  iframe.style.height = '1px';
-  iframe.style.border = 'none';
-  iframe.style.opacity = '0';
-  document.body.appendChild(iframe);
+  let iframe = document.getElementById('thermal-print-frame');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = 'thermal-print-frame';
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '0';
+    iframe.style.width = '100%';
+    iframe.style.height = '1px';
+    iframe.style.border = 'none';
+    iframe.style.opacity = '0';
+    document.body.appendChild(iframe);
+  }
 
   iframe.contentDocument.open();
   iframe.contentDocument.write(html);
@@ -304,11 +308,7 @@ export function printThermalInvoice(invoice) {
     } catch (e) {
       console.error('Thermal Print failed', e);
     }
-    setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
-      }
-    }, 5000);
+    // Intentionally omitting iframe removal to allow PDF generation to complete in the background
   }, 600);
 }
 
