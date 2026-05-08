@@ -4,7 +4,7 @@ import useStore from '../store';
 import toast from 'react-hot-toast';
 import { SkeletonTable, EmptyState, ErrorState, Modal, Pagination, inputCls, labelCls, badgeCls } from '../components/UI';
 import { formatCurrency, formatNumber } from '../utils/format';
-import { Search, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, PackagePlus } from 'lucide-react';
 
 const PER_PAGE = 10;
 
@@ -20,8 +20,13 @@ export default function Products() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [currentId, setCurrentId] = useState(null);
   const [formData, setFormData] = useState({
-    name: '', description: '', unitPrice: '', unitsPerBox: '12', retailPrice: '', stockBoxes: '', stockPieces: ''
+    name: '', description: '', unitPrice: '', unitsPerBox: '12', retailPrice: '', stockBoxes: ''
   });
+
+  // Stock adjustment state
+  const [isStockOpen, setIsStockOpen] = useState(false);
+  const [stockProduct, setStockProduct] = useState(null);
+  const [stockData, setStockData] = useState({ operation: 'ADD', quantity: '' });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -60,7 +65,7 @@ export default function Products() {
 
   const openAdd = () => {
     setCurrentId(null);
-    setFormData({ name: '', description: '', unitPrice: '', unitsPerBox: '12', retailPrice: '', stockBoxes: '', stockPieces: '' });
+    setFormData({ name: '', description: '', unitPrice: '', unitsPerBox: '12', retailPrice: '', stockBoxes: '' });
     setIsModalOpen(true);
   };
 
@@ -72,8 +77,7 @@ export default function Products() {
       unitPrice: p.unitPrice,
       unitsPerBox: p.unitsPerBox,
       retailPrice: p.retailPrice || '',
-      stockBoxes: Math.floor((p.stock || 0) / (p.unitsPerBox || 1)),
-      stockPieces: (p.stock || 0) % (p.unitsPerBox || 1)
+      stockBoxes: Math.floor((p.stock || 0) / (p.unitsPerBox || 1))
     });
     setIsModalOpen(true);
   };
@@ -94,7 +98,7 @@ export default function Products() {
       unitPrice: parseFloat(formData.unitPrice),
       unitsPerBox: parseInt(formData.unitsPerBox),
       retailPrice: parseFloat(formData.retailPrice) || 0,
-      stock: (parseInt(formData.stockBoxes || 0) * parseInt(formData.unitsPerBox)) + parseInt(formData.stockPieces || 0)
+      boxesInStock: parseInt(formData.stockBoxes || 0),
     };
 
     if (currentId) {
@@ -117,6 +121,27 @@ export default function Products() {
     removeProduct(currentId);
     toast.success('تم الحذف بنجاح');
     setIsDeleteOpen(false);
+  };
+
+  const openStock = (p) => {
+    setStockProduct(p);
+    setStockData({ operation: 'ADD', quantity: '' });
+    setIsStockOpen(true);
+  };
+
+  const handleStockSubmit = async () => {
+    const boxes = parseInt(stockData.quantity);
+    if (!boxes || boxes <= 0) return toast.error('يرجى إدخال عدد علب صحيح');
+    const pieces = boxes * (stockProduct.unitsPerBox || 1);
+    const { data, error } = await productsAPI.updateStock(stockProduct._id, {
+      quantity: pieces,
+      operation: stockData.operation,
+    });
+    if (error) return toast.error(error);
+    updateProduct(stockProduct._id, data.data);
+    toast.success(stockData.operation === 'ADD' ? `تمت إضافة ${boxes} علبة بنجاح` : `تم سحب ${boxes} علبة بنجاح`);
+    setIsStockOpen(false);
+    loadData();
   };
 
   return (
@@ -191,10 +216,11 @@ export default function Products() {
                     )}
                     {p.stock === 0 && <span className={badgeCls.danger}>نفد الكمية</span>}
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => openEdit(p)} className="text-slate-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="تعديل"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => openDelete(p._id)} className="text-slate-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف"><Trash2 className="w-4 h-4" /></button>
-                  </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => openStock(p)} className="text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-lg transition-colors" title="تعديل المخزون"><PackagePlus className="w-4 h-4" /></button>
+                      <button onClick={() => openEdit(p)} className="text-slate-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="تعديل"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => openDelete(p._id)} className="text-slate-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف"><Trash2 className="w-4 h-4" /></button>
+                    </div>
                 </div>
               </div>
             ))}
@@ -244,6 +270,7 @@ export default function Products() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-center gap-2">
+                        <button onClick={() => openStock(p)} className="text-slate-800 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-lg transition-colors" title="تعديل المخزون"><PackagePlus className="w-4 h-4" /></button>
                         <button onClick={() => openEdit(p)} className="text-slate-800 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="تعديل"><Edit2 className="w-4 h-4" /></button>
                         <button onClick={() => openDelete(p._id)} className="text-slate-800 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف"><Trash2 className="w-4 h-4" /></button>
                       </div>
@@ -290,10 +317,6 @@ export default function Products() {
             <label className={labelCls}>المخزون (عدد العلب)</label>
             <input type="number" className={inputCls} value={formData.stockBoxes} onChange={e => setFormData({ ...formData, stockBoxes: e.target.value })} placeholder="0" />
           </div>
-          <div>
-            <label className={labelCls}>المخزون (القطع الفردية المتبقية)</label>
-            <input type="number" className={inputCls} value={formData.stockPieces} onChange={e => setFormData({ ...formData, stockPieces: e.target.value })} placeholder="0" />
-          </div>
         </div>
       </Modal>
 
@@ -306,6 +329,44 @@ export default function Products() {
         confirmClass="btn-danger"
       >
         <p className="text-slate-600 font-bold">هل أنت متأكد من حذف المنتج؟ لا يمكن التراجع عن هذا الإجراء.</p>
+      </Modal>
+
+      {/* Stock Adjustment Modal */}
+      <Modal
+        isOpen={isStockOpen}
+        onClose={() => setIsStockOpen(false)}
+        title={`تعديل مخزون: ${stockProduct?.name || ''}`}
+        onConfirm={handleStockSubmit}
+        confirmText={stockData.operation === 'ADD' ? 'إضافة للمخزون' : 'سحب من المخزون'}
+        confirmClass={stockData.operation === 'ADD' ? '' : 'btn-warning'}
+      >
+        {stockProduct && (
+          <div className="flex flex-col gap-4">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center">
+              <span className="text-sm font-bold text-slate-600">المخزون الحالي:</span>
+              <span className="font-mono font-bold text-slate-800">
+                {Math.floor(stockProduct.stock / stockProduct.unitsPerBox)} علبة
+                {(stockProduct.stock % stockProduct.unitsPerBox) > 0 && ` و ${stockProduct.stock % stockProduct.unitsPerBox} قطعة`}
+              </span>
+            </div>
+            <div>
+              <label className={labelCls}>العملية</label>
+              <select className={inputCls} value={stockData.operation} onChange={e => setStockData({...stockData, operation: e.target.value})}>
+                <option value="ADD">إضافة علب للمخزون</option>
+                <option value="REMOVE">سحب علب من المخزون</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>عدد العلب <span className="text-red-400">*</span></label>
+              <input type="number" min="1" className={inputCls} placeholder="أدخل عدد العلب..." value={stockData.quantity} onChange={e => setStockData({...stockData, quantity: e.target.value})} />
+            </div>
+            {stockData.quantity > 0 && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center text-sm font-bold text-emerald-700">
+                {stockData.operation === 'ADD' ? 'سيتم إضافة' : 'سيتم سحب'} {parseInt(stockData.quantity) * stockProduct.unitsPerBox} قطعة ({stockData.quantity} علبة × {stockProduct.unitsPerBox} قطعة)
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </>
   );

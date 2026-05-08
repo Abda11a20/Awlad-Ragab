@@ -303,16 +303,13 @@ export default function CustomerDetails() {
                     <td className="px-5 py-3 font-mono text-slate-600 text-xs">{String(inv.invoiceId || inv._id || '').slice(-6).toUpperCase()}</td>
                     <td className="px-5 py-3 font-bold text-slate-700 text-xs">{formatDateTime(inv.createdAt)}</td>
                     <td className="px-5 py-3 text-center">
-                      <span className={
-                        inv.status === 'PAID' ? badgeCls.success :
-                        inv.status === 'PARTIAL' ? badgeCls.warning : badgeCls.danger
-                      }>
-                        {inv.status === 'PAID' ? 'مدفوعة' : inv.status === 'PARTIAL' ? 'جزئي' : 'غير مدفوعة'}
+                      <span className={STATUS_MAP[inv.status]?.cls || badgeCls.danger}>
+                        {STATUS_MAP[inv.status]?.label || inv.status}
                       </span>
                     </td>
                     <td className="px-5 py-3 text-center">
                       <span className="font-bold text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">
-                        {inv.paymentMethod === 'CASH' ? 'نقدي' : 'آجل'}
+                        {METHOD_MAP[inv.paymentMethod] || inv.paymentMethod}
                       </span>
                     </td>
                     <td className="px-5 py-3 font-mono font-bold text-slate-800">{formatCurrency(inv.totalAmount)}</td>

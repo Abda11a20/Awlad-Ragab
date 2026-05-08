@@ -233,7 +233,7 @@ function renderReceiptCanvas(invoice) {
 
   // ─── Helper functions ───
   function drawCenter(text, fontSize, bold = false) {
-    ctx.font = `${bold ? 'bold ' : ''}${fontSize}px Tahoma, Arial, sans-serif`;
+    ctx.font = `${bold ? '900 ' : ''}${fontSize}px Tahoma, Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.direction = 'rtl';
     ctx.fillText(text, W / 2, y);
@@ -241,7 +241,7 @@ function renderReceiptCanvas(invoice) {
   }
 
   function drawBetween(labelR, valueL, fontSize, bold = false) {
-    ctx.font = `${bold ? 'bold ' : ''}${fontSize}px Tahoma, Arial, sans-serif`;
+    ctx.font = `${bold ? '900 ' : ''}${fontSize}px Tahoma, Arial, sans-serif`;
     ctx.direction = 'rtl';
     ctx.textAlign = 'right';
     ctx.fillText(labelR, W - PAD, y);
@@ -277,7 +277,6 @@ function renderReceiptCanvas(invoice) {
   y += 8;
   drawCenter(`فاتورة رقم #${invId}`, 26, true);
   drawCenter(fmtDate(invoice.createdAt), 22, true);
-  drawDashedLine();
 
   // ─── INFO ───
   drawBetween('العميل:', invoice.customerId?.name || 'عميل نقدي', 26, true);
@@ -286,12 +285,11 @@ function renderReceiptCanvas(invoice) {
   }
   drawBetween('الدفع:', METHOD[invoice.paymentMethod] || invoice.paymentMethod || '', 26, true);
   drawBetween('الحالة:', STATUS[invoice.status] || invoice.status || '', 26, true);
-  drawDashedLine();
 
   // ─── ITEMS TABLE ───
   // Table header
   const colX = [W - PAD, W * 0.55, W * 0.35, PAD];
-  ctx.font = 'bold 24px Tahoma, Arial, sans-serif';
+  ctx.font = '900 24px Tahoma, Arial, sans-serif';
   ctx.textAlign = 'right';
   ctx.fillText('المنتج', colX[0], y);
   ctx.textAlign = 'center';
@@ -309,28 +307,41 @@ function renderReceiptCanvas(invoice) {
   ctx.lineWidth = 1;
   y += 18;
 
+  // ─── Smart quantity formatter (mirrors system UI logic) ───
+  const fmtQty = (qty, unitsPerBox = 1) => {
+    if (qty === 0) return '٠';
+    if (unitsPerBox <= 1) return `${qty} قطعة`;
+    const boxes = Math.floor(qty / unitsPerBox);
+    const pieces = qty % unitsPerBox;
+    if (boxes > 0 && pieces === 0) return `${boxes} علبة`;
+    if (boxes === 0) return `${pieces} قطعة`;
+    return `${boxes} علبة و ${pieces} قطعة`;
+  };
+
   // Table rows — NO per-row separators
   items.forEach((it) => {
     const name = it.productId?.name || 'منتج محذوف';
     const qty = it.quantity || 0;
+    const unitsPerBox = it.productId?.unitsPerBox || 1;
     const price = it.unitPrice || 0;
     const total = qty * price;
+    const qtyLabel = fmtQty(qty, unitsPerBox);
 
     if (qty === 0) ctx.globalAlpha = 0.45;
 
-    ctx.font = 'bold 24px Tahoma, Arial, sans-serif';
+    ctx.font = '900 24px Tahoma, Arial, sans-serif';
     ctx.textAlign = 'right';
     ctx.direction = 'rtl';
     ctx.fillText(name + (qty === 0 ? ' (مُرجَع)' : ''), colX[0], y);
 
-    ctx.font = 'bold 22px Tahoma, Arial, sans-serif';
+    ctx.font = '900 20px Tahoma, Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${qty}`, colX[1], y);
+    ctx.fillText(qtyLabel, colX[1], y);
 
-    ctx.font = 'bold 20px monospace';
+    ctx.font = '900 34px monospace';
     ctx.fillText(fmt(price), colX[2], y);
 
-    ctx.font = 'bold 22px monospace';
+    ctx.font = '900 34px monospace';
     ctx.textAlign = 'left';
     ctx.fillText(fmt(total), colX[3], y);
 
@@ -341,19 +352,19 @@ function renderReceiptCanvas(invoice) {
   drawDashedLine();
 
   // ─── TOTALS ───
-  drawBetween('الإجمالي الفرعي:', fmt(invoice.subTotal), 26, true);
+  drawBetween('الإجمالي الفرعي:', fmt(invoice.subTotal), 34, true);
   drawBetween('الخصم:', fmt(invoice.discount), 26, true);
   drawSolidLine();
   drawBetween('الصافي:', fmt(invoice.totalAmount), 34, true);
   y += 8;
   drawBetween('المدفوع:', fmt(invoice.paidAmount), 26, true);
-  drawBetween('المتبقي:', fmt(invoice.dueAmount), 28, true);
+  drawBetween('المتبقي:', fmt(invoice.dueAmount), 34, true);
   drawDashedLine();
 
   // ─── FOOTER ───
   y += 12;
   drawCenter('مازن رجب', 32, true);
-  ctx.font = 'bold 26px monospace';
+  ctx.font = '900 32px monospace';
   ctx.textAlign = 'center';
   ctx.direction = 'ltr';
   ctx.fillText('01025210536 - 01158325071', W / 2, y);

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mazen-wms-v4';
+const CACHE_NAME = 'mazen-wms-v5';
 
 // ملفات static فقط
 const STATIC_ASSETS = [
@@ -38,7 +38,12 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   // ❌ تجاهل API بالكامل
-  if (request.url.includes('/api/')) return;
+  if (
+    request.url.includes('/api/') ||
+    request.url.startsWith('https://mazen-warehouse.vercel.app')
+  ) {
+    return;
+  }
 
   // ❌ تجاهل أي حاجة مش http
   if (!request.url.startsWith('http')) return;

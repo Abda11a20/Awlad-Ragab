@@ -115,7 +115,7 @@ export default function Invoices() {
     }
     if (allCustomers.length > 0) setCustomers(allCustomers);
 
-    setCreateData({ customerId: '', paymentMethod: 'cash', discount: 0, paidAmount: 0, items: [{ productId: '', quantity: 1, unitPrice: 0 }] });
+    setCreateData({ customerId: '', paymentMethod: 'cash', discount: 0, paidAmount: 0, items: [{ productId: '', quantity: '', unitPrice: 0, unitType: 'UNIT' }] });
     setIsCreateOpen(true);
   };
 
@@ -131,7 +131,7 @@ export default function Invoices() {
   };
 
   const addCreateItem = () => {
-    setCreateData({ ...createData, items: [...createData.items, { productId: '', quantity: 1, unitPrice: 0 }] });
+    setCreateData({ ...createData, items: [...createData.items, { productId: '', quantity: '', unitPrice: 0, unitType: 'UNIT' }] });
   };
 
   const removeCreateItem = (index) => {
@@ -140,7 +140,13 @@ export default function Invoices() {
   };
 
   const calculateCreateTotals = () => {
-    let subtotal = createData.items.reduce((sum, item) => sum + (parseFloat(item.quantity) * parseFloat(item.unitPrice) || 0), 0);
+    let subtotal = createData.items.reduce((sum, item) => {
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.unitPrice) || 0;
+      const prod = products.find(p => p._id === item.productId);
+      const multiplier = item.unitType === 'BOX' && prod ? prod.unitsPerBox : 1;
+      return sum + (qty * multiplier * price);
+    }, 0);
     let discount = parseFloat(createData.discount) || 0;
     
     // Fix floating point precision issues (e.g., 3 * 12.6666 = 37.9998 instead of 38.00)
@@ -148,6 +154,12 @@ export default function Invoices() {
     discount = Math.round(discount * 100) / 100;
     
     let total = Math.round((subtotal - discount) * 100) / 100;
+
+    // CASH: backend auto-fills paidAmount = totalAmount, dueAmount = 0
+    if (createData.paymentMethod === 'cash') {
+      return { subtotal, discount, total, paid: total, due: 0 };
+    }
+
     let paid = Math.round((parseFloat(createData.paidAmount) || 0) * 100) / 100;
     let due = Math.round((total - paid) * 100) / 100;
     
@@ -160,13 +172,15 @@ export default function Invoices() {
 
     const { subtotal, discount, total, paid } = calculateCreateTotals();
 
-    // Backend model: allows paying up to 2 pounds extra to handle piaster issues
-    if (paid > total + 2) {
+    const isCash = createData.paymentMethod === 'cash';
+
+    // Backend model: allows paying up to 2 pounds extra to handle piaster issues (CREDIT only)
+    if (!isCash && paid > total + 2) {
       return toast.error(`المبلغ المدفوع (${formatCurrency(paid)}) يتجاوز إجمالي الفاتورة بحد غير مسموح. أقصى زيادة مسموحة هي 2 جنيه`);
     }
 
     // Cap paidAmount to totalAmount to prevent negative dueAmount on backend
-    const safePaid = Math.round(Math.min(paid, total) * 100) / 100;
+    const safePaid = isCash ? 0 : Math.round(Math.min(paid, total) * 100) / 100;
 
     const payload = {
       customerId: createData.customerId || undefined,
@@ -176,6 +190,7 @@ export default function Invoices() {
       items: validItems.map(i => ({
         productId: i.productId,
         quantity: parseInt(i.quantity),
+        unitType: i.unitType || 'UNIT',
         unitPrice: Math.round(parseFloat(i.unitPrice) * 100) / 100,
       })),
     };
@@ -458,10 +473,12 @@ export default function Invoices() {
                 <label className={labelCls}>الخصم</label>
                 <input type="number" min="0" className={inputCls} value={createData.discount} onChange={e => setCreateData({...createData, discount: e.target.value})} />
               </div>
-              <div>
-                <label className={labelCls}>المبلغ المدفوع</label>
-                <input type="number" min="0" className={inputCls} value={createData.paidAmount} onChange={e => setCreateData({...createData, paidAmount: e.target.value})} />
-              </div>
+              {createData.paymentMethod !== 'cash' && (
+                <div>
+                  <label className={labelCls}>المبلغ المدفوع</label>
+                  <input type="number" min="0" className={inputCls} value={createData.paidAmount} onChange={e => setCreateData({...createData, paidAmount: e.target.value})} />
+                </div>
+              )}
             </div>
           </div>
 
@@ -474,7 +491,7 @@ export default function Invoices() {
             </div>
             <div className="flex flex-col gap-2">
               {createData.items.map((item, idx) => (
-                <div key={idx} className="flex gap-2 items-start">
+                <div key={idx} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-start">
                   <div className="flex-1">
                     <SearchableSelect
                       value={item.productId}
@@ -488,15 +505,18 @@ export default function Invoices() {
                       }))}
                     />
                   </div>
-                  <div className="w-24">
-                    <input type="number" min="1" className={`${inputCls} text-center`} placeholder="الكمية" value={item.quantity} onChange={e => handleCreateItemChange(idx, 'quantity', e.target.value)} />
+                  <div className="flex gap-2 items-start">
+                    <div className="w-24 sm:w-20">
+                      <input type="number" min="1" className={`${inputCls} text-center`} placeholder="الكمية" value={item.quantity} onChange={e => handleCreateItemChange(idx, 'quantity', e.target.value)} />
+                    </div>
+                    <select className={`${inputCls} w-20 text-center text-xs px-1`} value={item.unitType || 'UNIT'} onChange={e => handleCreateItemChange(idx, 'unitType', e.target.value)}>
+                      <option value="UNIT">قطعة</option>
+                      <option value="BOX">علبة</option>
+                    </select>
+                    <button onClick={() => removeCreateItem(idx)} className="shrink-0 h-10 w-10 flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-100 border border-red-100 rounded-xl transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="w-28">
-                    <input type="number" min="0" className={`${inputCls} text-center`} placeholder="السعر" value={item.unitPrice} onChange={e => handleCreateItemChange(idx, 'unitPrice', e.target.value)} />
-                  </div>
-                  <button onClick={() => removeCreateItem(idx)} className="shrink-0 h-10 w-10 flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-100 border border-red-100 rounded-xl transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
               ))}
             </div>

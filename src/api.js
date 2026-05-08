@@ -2,9 +2,9 @@ import axios from 'axios';
 
 
 const isLocalDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-const BASE = isLocalDev
-  ? (import.meta.env.VITE_API_BASE_URL || 'https://mazen-warehouse.vercel.app')
-  : '/api';
+const BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  'https://mazen-warehouse.vercel.app';
 
 const http = axios.create({
   baseURL: BASE,
@@ -53,6 +53,7 @@ export const productsAPI = {
   create: (data) => req(() => http.post('/product/add', data)),
   update: (id, d) => req(() => http.put(`/product/update/${id}`, d)),
   delete: (id) => req(() => http.delete(`/product/delete/${id}`)),
+  updateStock: (id, data) => req(() => http.patch(`/product/stock/${id}`, data)),
 };
 
 // ── Customers ─────────────────────────────────────────
