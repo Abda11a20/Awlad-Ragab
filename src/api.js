@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { translateMessage } from './utils/messages.js';
 
 
 const isLocalDev = typeof window !== 'undefined' && window.location.hostname === 'localhost';
@@ -26,7 +27,7 @@ const req = async (fn) => {
     if (!msg) {
       msg = 'السيرفر غير متاح الآن أو هناك عطل فني، يرجى المحاولة بعد قليل';
     }
-    return { data: null, error: msg };
+    return { data: null, error: translateMessage(msg) };
   }
 };
 

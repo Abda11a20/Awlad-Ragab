@@ -125,21 +125,23 @@ export default function Products() {
 
   const openStock = (p) => {
     setStockProduct(p);
-    setStockData({ operation: 'ADD', quantity: '' });
+    setStockData({ operation: 'ADD', quantity: '', unitType: 'BOX' });
     setIsStockOpen(true);
   };
 
   const handleStockSubmit = async () => {
-    const boxes = parseInt(stockData.quantity);
-    if (!boxes || boxes <= 0) return toast.error('يرجى إدخال عدد علب صحيح');
-    const pieces = boxes * (stockProduct.unitsPerBox || 1);
+    const qty = parseInt(stockData.quantity);
+    if (!qty || qty <= 0) return toast.error('يرجى إدخال كمية صحيحة');
+    const isBox = stockData.unitType === 'BOX';
+    const pieces = isBox ? qty * (stockProduct.unitsPerBox || 1) : qty;
     const { data, error } = await productsAPI.updateStock(stockProduct._id, {
       quantity: pieces,
       operation: stockData.operation,
     });
     if (error) return toast.error(error);
     updateProduct(stockProduct._id, data.data);
-    toast.success(stockData.operation === 'ADD' ? `تمت إضافة ${boxes} علبة بنجاح` : `تم سحب ${boxes} علبة بنجاح`);
+    const label = isBox ? `${qty} علبة` : `${qty} قطعة`;
+    toast.success(stockData.operation === 'ADD' ? `تمت إضافة ${label} بنجاح` : `تم سحب ${label} بنجاح`);
     setIsStockOpen(false);
     loadData();
   };
@@ -352,17 +354,28 @@ export default function Products() {
             <div>
               <label className={labelCls}>العملية</label>
               <select className={inputCls} value={stockData.operation} onChange={e => setStockData({...stockData, operation: e.target.value})}>
-                <option value="ADD">إضافة علب للمخزون</option>
-                <option value="REMOVE">سحب علب من المخزون</option>
+                <option value="ADD">إضافة للمخزون</option>
+                <option value="REMOVE">سحب من المخزون</option>
               </select>
             </div>
             <div>
-              <label className={labelCls}>عدد العلب <span className="text-red-400">*</span></label>
-              <input type="number" min="1" className={inputCls} placeholder="أدخل عدد العلب..." value={stockData.quantity} onChange={e => setStockData({...stockData, quantity: e.target.value})} />
+              <label className={labelCls}>نوع الإدخال</label>
+              <select className={inputCls} value={stockData.unitType} onChange={e => setStockData({...stockData, unitType: e.target.value})}>
+                <option value="BOX">علبة</option>
+                <option value="UNIT">قطعة</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>{stockData.unitType === 'BOX' ? 'عدد العلب' : 'عدد القطع'} <span className="text-red-400">*</span></label>
+              <input type="number" min="1" className={inputCls} placeholder={stockData.unitType === 'BOX' ? 'أدخل عدد العلب...' : 'أدخل عدد القطع...'} value={stockData.quantity} onChange={e => setStockData({...stockData, quantity: e.target.value})} />
             </div>
             {stockData.quantity > 0 && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center text-sm font-bold text-emerald-700">
-                {stockData.operation === 'ADD' ? 'سيتم إضافة' : 'سيتم سحب'} {parseInt(stockData.quantity) * stockProduct.unitsPerBox} قطعة ({stockData.quantity} علبة × {stockProduct.unitsPerBox} قطعة)
+                {stockData.operation === 'ADD' ? 'سيتم إضافة' : 'سيتم سحب'}{' '}
+                {stockData.unitType === 'BOX'
+                  ? `${parseInt(stockData.quantity) * stockProduct.unitsPerBox} قطعة (${stockData.quantity} علبة × ${stockProduct.unitsPerBox} قطعة)`
+                  : `${stockData.quantity} قطعة`
+                }
               </div>
             )}
           </div>

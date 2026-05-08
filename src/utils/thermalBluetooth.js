@@ -189,7 +189,7 @@ function renderReceiptCanvas(invoice) {
   const PAD = 16;
   const TW = W - PAD * 2; // text width
 
-  const fmt = (n) => `${Number(n || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2 })} ج`;
+  const fmt = (n) => `${Number(n || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2 })}`;
   const fmtDate = (d) => {
     if (!d) return '';
     return new Date(d).toLocaleDateString('ar-EG', {

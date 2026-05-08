@@ -180,19 +180,22 @@ export default function Invoices() {
     }
 
     // Cap paidAmount to totalAmount to prevent negative dueAmount on backend
-    const safePaid = isCash ? 0 : Math.round(Math.min(paid, total) * 100) / 100;
+    const safePaid = isCash ? Math.round(total * 100) / 100 : Math.round(Math.min(paid, total) * 100) / 100;
 
     const payload = {
       customerId: createData.customerId || undefined,
       paymentMethod: createData.paymentMethod,
       discount: Math.round(discount * 100) / 100,
       paidAmount: safePaid,
-      items: validItems.map(i => ({
-        productId: i.productId,
-        quantity: parseInt(i.quantity),
-        unitType: i.unitType || 'UNIT',
-        unitPrice: Math.round(parseFloat(i.unitPrice) * 100) / 100,
-      })),
+      items: validItems.map(i => {
+        const prod = products.find(p => p._id === i.productId);
+        const multiplier = i.unitType === 'BOX' && prod ? prod.unitsPerBox : 1;
+        return {
+          productId: i.productId,
+          quantity: parseInt(i.quantity) * multiplier,
+          unitPrice: Math.round(parseFloat(i.unitPrice) * 100) / 100,
+        };
+      }),
     };
 
     const { error } = await invoicesAPI.create(payload);

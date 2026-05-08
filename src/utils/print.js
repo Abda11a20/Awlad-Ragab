@@ -5,7 +5,7 @@
 export function printInvoice(invoice) {
   if (!invoice) return;
 
-  const fmt = (n) => `${Number(n || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2 })} ج`;
+  const fmt = (n) => `${Number(n || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2 })}`;
   const fmtDate = (d) => {
     if (!d) return '';
     return new Date(d).toLocaleDateString('ar-EG', {
@@ -35,14 +35,14 @@ export function printInvoice(invoice) {
     const unitsPerBox = it.productId?.unitsPerBox || 1;
     const price = it.unitPrice || 0;
     const total = qty * price;
-    const returned = qty === 0 ? ' <span style="font-size:11px;color:#64748b">(مُرجَع)</span>' : '';
+    const returned = qty === 0 ? ' <span style="font-size:16px;color:#64748b">(مُرجَع)</span>' : '';
     const rowStyle = qty === 0 ? 'opacity:0.45;' : '';
     return `
       <tr style="border-bottom:1px solid #e2e8f0;${rowStyle}">
-        <td style="padding:10px 14px;font-weight:700">${name}${returned}</td>
-        <td style="padding:10px 14px;text-align:center;font-family:monospace;font-weight:700">${fmtQty(qty, unitsPerBox)}</td>
-        <td style="padding:10px 14px;text-align:center;font-family:monospace;font-weight:700">${fmt(price)}</td>
-        <td style="padding:10px 14px;text-align:center;font-family:monospace;font-weight:700">${fmt(total)}</td>
+        <td style="padding:12px 14px;font-weight:900;font-size:18px">${name}${returned}</td>
+        <td style="padding:12px 14px;text-align:center;font-family:monospace;font-weight:900;font-size:18px">${fmtQty(qty, unitsPerBox)}</td>
+        <td style="padding:12px 14px;text-align:center;font-family:monospace;font-weight:900;font-size:20px">${fmt(price)}</td>
+        <td style="padding:12px 14px;text-align:center;font-family:monospace;font-weight:900;font-size:20px">${fmt(total)}</td>
       </tr>`;
   }).join('');
 
@@ -54,7 +54,7 @@ export function printInvoice(invoice) {
   <title>فاتورة #${invId}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#fff;color:#000;padding:36px;direction:rtl;font-size:14px}
+    body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#fff;color:#000;padding:36px;direction:rtl;font-size:18px}
     h1,h2,h3{margin:0}
     table{width:100%;border-collapse:collapse}
     @media print{body{padding:20px}@page{margin:15mm}}
@@ -77,21 +77,21 @@ export function printInvoice(invoice) {
   <!-- Info Grid -->
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
     <div style="border:1.5px solid #cbd5e1;border-radius:8px;padding:10px">
-      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px">العميل</div>
-      <div style="font-weight:700;color:#000">${invoice.customerId?.name || 'عميل نقدي'}</div>
-      ${invoice.customerId?.phone ? `<div style="font-size:11px;font-family:monospace;margin-top:3px">${invoice.customerId.phone}</div>` : ''}
+      <div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px">العميل</div>
+      <div style="font-weight:700;font-size:16px;color:#000">${invoice.customerId?.name || 'عميل نقدي'}</div>
+      ${invoice.customerId?.phone ? `<div style="font-size:14px;font-family:monospace;margin-top:3px">${invoice.customerId.phone}</div>` : ''}
     </div>
     <div style="border:1.5px solid #cbd5e1;border-radius:8px;padding:10px">
-      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px">التاريخ</div>
-      <div style="font-weight:700;font-size:12px;color:#000">${fmtDate(invoice.createdAt)}</div>
+      <div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px">التاريخ</div>
+      <div style="font-weight:700;font-size:14px;color:#000">${fmtDate(invoice.createdAt)}</div>
     </div>
     <div style="border:1.5px solid #cbd5e1;border-radius:8px;padding:10px">
-      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px">طريقة الدفع</div>
-      <div style="font-weight:700;color:#000">${METHOD[invoice.paymentMethod] || invoice.paymentMethod || ''}</div>
+      <div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px">طريقة الدفع</div>
+      <div style="font-weight:700;font-size:16px;color:#000">${METHOD[invoice.paymentMethod] || invoice.paymentMethod || ''}</div>
     </div>
     <div style="border:1.5px solid #cbd5e1;border-radius:8px;padding:10px">
-      <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px">الحالة</div>
-      <div style="font-weight:700;color:#000">${STATUS[invoice.status] || invoice.status || ''}</div>
+      <div style="font-size:13px;font-weight:700;color:#475569;margin-bottom:4px">الحالة</div>
+      <div style="font-weight:700;font-size:16px;color:#000">${STATUS[invoice.status] || invoice.status || ''}</div>
     </div>
   </div>
 
@@ -100,10 +100,10 @@ export function printInvoice(invoice) {
     <table>
       <thead style="background:#f1f5f9;border-bottom:2px solid #cbd5e1">
         <tr>
-          <th style="padding:10px 14px;text-align:right;font-weight:700;font-size:13px">المنتج</th>
-          <th style="padding:10px 14px;text-align:center;font-weight:700;font-size:13px">الكمية</th>
-          <th style="padding:10px 14px;text-align:center;font-weight:700;font-size:13px">سعر الوحدة</th>
-          <th style="padding:10px 14px;text-align:center;font-weight:700;font-size:13px">الإجمالي</th>
+          <th style="padding:12px 14px;text-align:right;font-weight:700;font-size:16px">المنتج</th>
+          <th style="padding:12px 14px;text-align:center;font-weight:700;font-size:16px">الكمية</th>
+          <th style="padding:12px 14px;text-align:center;font-weight:700;font-size:16px">سعر الوحدة</th>
+          <th style="padding:12px 14px;text-align:center;font-weight:700;font-size:16px">الإجمالي</th>
         </tr>
       </thead>
       <tbody>${itemsRows}</tbody>
@@ -112,19 +112,19 @@ export function printInvoice(invoice) {
 
   <!-- Totals -->
   <div style="border:1.5px solid #cbd5e1;border-radius:8px;padding:16px;max-width:320px;margin-right:auto;margin-bottom:30px">
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-weight:700;font-size:13px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-weight:700;font-size:16px">
       <span>الإجمالي الفرعي:</span><span style="font-family:monospace">${fmt(invoice.subTotal)}</span>
     </div>
-    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-weight:700;font-size:13px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-weight:700;font-size:16px">
       <span>الخصم:</span><span style="font-family:monospace">${fmt(invoice.discount)}</span>
     </div>
-    <div style="display:flex;justify-content:space-between;border-top:2px solid #000;padding-top:10px;margin-top:8px;font-weight:900;font-size:16px">
+    <div style="display:flex;justify-content:space-between;border-top:2px solid #000;padding-top:10px;margin-top:8px;font-weight:900;font-size:20px">
       <span>الصافي:</span><span style="font-family:monospace">${fmt(invoice.totalAmount)}</span>
     </div>
-    <div style="display:flex;justify-content:space-between;margin-top:10px;font-weight:700;font-size:13px">
+    <div style="display:flex;justify-content:space-between;margin-top:10px;font-weight:700;font-size:16px">
       <span>المدفوع:</span><span style="font-family:monospace;color:#16a34a">${fmt(invoice.paidAmount)}</span>
     </div>
-    <div style="display:flex;justify-content:space-between;margin-top:4px;font-weight:900;font-size:14px">
+    <div style="display:flex;justify-content:space-between;margin-top:4px;font-weight:900;font-size:18px">
       <span>المتبقي:</span><span style="font-family:monospace;color:${(invoice.dueAmount || 0) > 0 ? '#dc2626' : '#16a34a'}">${fmt(invoice.dueAmount)}</span>
     </div>
   </div>
@@ -179,7 +179,7 @@ export function printInvoice(invoice) {
 export function printThermalInvoice(invoice) {
   if (!invoice) return;
 
-  const fmt = (n) => `${Number(n || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2 })} ج`;
+  const fmt = (n) => `${Number(n || 0).toLocaleString('ar-EG', { minimumFractionDigits: 2 })}`;
   const fmtDate = (d) => {
     if (!d) return '';
     return new Date(d).toLocaleDateString('ar-EG', {
