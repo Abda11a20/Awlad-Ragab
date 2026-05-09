@@ -4,7 +4,7 @@ import useStore from '../store';
 import toast from 'react-hot-toast';
 import { SkeletonTable, EmptyState, ErrorState, Modal, Pagination, SearchableSelect, inputCls, labelCls, badgeCls } from '../components/UI';
 import { formatCurrency, formatDateTime } from '../utils/format';
-import { Plus, Trash2, Undo2, FileText as FileTextIcon, Eye, Printer, Bluetooth } from 'lucide-react';
+import { Plus, Trash2, Undo2, FileText as FileTextIcon, Eye, Printer, Bluetooth, Banknote } from 'lucide-react';
 import { printInvoice, printThermalInvoice } from '../utils/print';
 import { isBleSupported, isConnected as isBleConnected, printThermalDirect, connectPrinter, getDeviceName, shareInvoiceToRawBT } from '../utils/thermalBluetooth';
 
@@ -50,6 +50,10 @@ export default function Invoices() {
 
   // Refund Form State
   const [refundItems, setRefundItems] = useState({});
+
+  // Payment Collection State
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(0);
 
   // Prevent double submit
   const [submitting, setSubmitting] = useState(false);
@@ -322,6 +326,38 @@ export default function Invoices() {
     loadData();
   };
 
+  // Payment collection functions
+  const openPayment = async (inv) => {
+    const { data, error } = await invoicesAPI.getById(inv._id);
+    if (error) return toast.error(error);
+    const fetchedInv = data?.data;
+    setCurrentInvoice(fetchedInv);
+    setPaymentAmount(0);
+    setIsPaymentOpen(true);
+  };
+
+  const handlePaymentSubmit = async () => {
+    if (submitting) return;
+    const additionalPayment = parseFloat(paymentAmount) || 0;
+    if (additionalPayment <= 0) return toast.warning('يجب إدخال مبلغ أكبر من 0');
+
+    const newPaidAmount = (currentInvoice.paidAmount || 0) + additionalPayment;
+
+    if (newPaidAmount > currentInvoice.totalAmount + 2) {
+      return toast.error('المبلغ الإجمالي المدفوع يتجاوز إجمالي الفاتورة');
+    }
+
+    setSubmitting(true);
+    const { error } = await invoicesAPI.refund(currentInvoice._id, { paidAmount: newPaidAmount });
+    setSubmitting(false);
+    if (error) return toast.error(error);
+
+    clearCache();
+    toast.success('تم تحديث المبلغ المدفوع بنجاح');
+    setIsPaymentOpen(false);
+    loadData();
+  };
+
   const totals = isCreateOpen ? calculateCreateTotals() : { subtotal: 0, discount: 0, total: 0, paid: 0, due: 0 };
 
   return (
@@ -403,6 +439,11 @@ export default function Invoices() {
                     <button onClick={() => openRefund(inv)} className="text-slate-600 hover:text-amber-700 hover:bg-amber-50 p-2 rounded-lg transition-colors" title="إرجاع">
                       <Undo2 className="w-4 h-4" />
                     </button>
+                    {inv.dueAmount > 0 && (
+                      <button onClick={() => openPayment(inv)} className="text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-lg transition-colors" title="تحصيل مبلغ">
+                        <Banknote className="w-4 h-4" />
+                      </button>
+                    )}
                     <button onClick={() => openDelete(inv)} className="text-slate-600 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف">
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -460,6 +501,11 @@ export default function Invoices() {
                         <button onClick={() => openRefund(inv)} className="text-slate-800 hover:text-amber-700 hover:bg-amber-50 p-2 rounded-lg transition-colors" title="إرجاع (Refund)">
                           <Undo2 className="w-4 h-4" />
                         </button>
+                        {inv.dueAmount > 0 && (
+                          <button onClick={() => openPayment(inv)} className="text-slate-800 hover:text-emerald-700 hover:bg-emerald-50 p-2 rounded-lg transition-colors" title="تحصيل مبلغ">
+                            <Banknote className="w-4 h-4" />
+                          </button>
+                        )}
                         <button onClick={() => openDelete(inv)} className="text-slate-800 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف">
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -727,6 +773,70 @@ export default function Invoices() {
             );
           })}
         </div>
+      </Modal>
+
+      {/* Payment Collection Modal */}
+      <Modal isOpen={isPaymentOpen} onClose={() => setIsPaymentOpen(false)} title={`تحصيل مبلغ - فاتورة #${currentInvoice?._id?.slice(-8) || ''}`} onConfirm={handlePaymentSubmit} confirmText={submitting ? 'جاري التحديث...' : 'تأكيد التحصيل'} confirmDisabled={submitting}>
+        {currentInvoice && (
+          <div className="flex flex-col gap-4">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-2">
+              <div className="flex justify-between text-sm font-bold">
+                <span className="text-slate-500">إجمالي الفاتورة:</span>
+                <span className="font-mono text-slate-800">{formatCurrency(currentInvoice.totalAmount)}</span>
+              </div>
+              <div className="flex justify-between text-sm font-bold">
+                <span className="text-slate-500">المدفوع سابقاً:</span>
+                <span className="font-mono text-emerald-600">{formatCurrency(currentInvoice.paidAmount)}</span>
+              </div>
+              <div className="flex justify-between font-bold pt-2 mt-1 border-t border-slate-200">
+                <span className="text-red-600">المتبقي:</span>
+                <span className="font-mono text-red-600">{formatCurrency(currentInvoice.dueAmount)}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelCls}>المبلغ المُحصَّل</label>
+              <input
+                type="number"
+                min="0"
+                max={currentInvoice.dueAmount}
+                className={inputCls}
+                value={paymentAmount}
+                onChange={e => setPaymentAmount(e.target.value)}
+                placeholder="أدخل المبلغ المحصل..."
+              />
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentAmount(currentInvoice.dueAmount)}
+                  className="text-xs bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 px-3 py-1.5 rounded-lg font-bold transition-colors"
+                >
+                  تحصيل كامل المتبقي ({formatCurrency(currentInvoice.dueAmount)})
+                </button>
+              </div>
+            </div>
+
+            {parseFloat(paymentAmount) > 0 && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm">
+                <div className="flex justify-between font-bold text-slate-700">
+                  <span>المدفوع بعد التحصيل:</span>
+                  <span className="font-mono text-emerald-600">{formatCurrency((currentInvoice.paidAmount || 0) + (parseFloat(paymentAmount) || 0))}</span>
+                </div>
+                <div className="flex justify-between font-bold text-slate-700 mt-1">
+                  <span>المتبقي بعد التحصيل:</span>
+                  <span className={`font-mono ${currentInvoice.dueAmount - (parseFloat(paymentAmount) || 0) <= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {formatCurrency(Math.max(currentInvoice.dueAmount - (parseFloat(paymentAmount) || 0), 0))}
+                  </span>
+                </div>
+                {currentInvoice.dueAmount - (parseFloat(paymentAmount) || 0) <= 0 && (
+                  <div className="mt-2 text-center text-emerald-700 font-bold text-xs">
+                    ✅ ستصبح الفاتورة مدفوعة بالكامل
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
 
       {/* Delete Modal */}
