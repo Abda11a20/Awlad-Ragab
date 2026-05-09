@@ -51,6 +51,9 @@ export default function Invoices() {
   // Refund Form State
   const [refundItems, setRefundItems] = useState({});
 
+  // Prevent double submit
+  const [submitting, setSubmitting] = useState(false);
+
 
 
   const loadData = useCallback(async () => {
@@ -167,8 +170,25 @@ export default function Invoices() {
   };
 
   const handleCreateSubmit = async () => {
+    if (submitting) return;
     const validItems = createData.items.filter(i => i.productId && i.quantity > 0);
     if (!validItems.length) return toast.warning('يجب إضافة عنصر واحد على الأقل للفاتورة');
+
+    // ══════ التحقق من المخزون قبل الإرسال ══════
+    for (const item of validItems) {
+      const prod = products.find(p => p._id === item.productId);
+      if (!prod) {
+        return toast.error('منتج غير موجود، يرجى تحديث الصفحة');
+      }
+      const multiplier = item.unitType === 'BOX' && prod ? prod.unitsPerBox : 1;
+      const requiredUnits = parseInt(item.quantity) * multiplier;
+      if (requiredUnits > prod.stock) {
+        const availText = Math.floor(prod.stock / prod.unitsPerBox) > 0
+          ? `${Math.floor(prod.stock / prod.unitsPerBox)} علبة و ${prod.stock % prod.unitsPerBox} قطعة`
+          : `${prod.stock} قطعة`;
+        return toast.error(`الكمية المطلوبة من "${prod.name}" (${requiredUnits} قطعة) أكبر من المخزون المتاح (${availText})`);
+      }
+    }
 
     const { subtotal, discount, total, paid } = calculateCreateTotals();
 
@@ -198,7 +218,9 @@ export default function Invoices() {
       }),
     };
 
+    setSubmitting(true);
     const { error } = await invoicesAPI.create(payload);
+    setSubmitting(false);
     if (error) return toast.error(error);
     
     clearCache();
@@ -213,7 +235,10 @@ export default function Invoices() {
   };
 
   const handleDelete = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     const { error } = await invoicesAPI.delete(currentInvoice._id);
+    setSubmitting(false);
     if (error) return toast.error(error);
     clearCache();
     toast.success('تم حذف الفاتورة بنجاح');
@@ -263,6 +288,7 @@ export default function Invoices() {
   };
 
   const handleRefundSubmit = async () => {
+    if (submitting) return;
     const items = [];
     let hasInvalidQty = false;
 
@@ -285,7 +311,9 @@ export default function Invoices() {
     if (hasInvalidQty) return;
     if (!items.length) return toast.warning('يجب إدخال كمية واحدة على الأقل للإرجاع');
 
+    setSubmitting(true);
     const { error } = await invoicesAPI.refund(currentInvoice._id, { items });
+    setSubmitting(false);
     if (error) return toast.error(error);
 
     clearCache();
@@ -448,7 +476,7 @@ export default function Invoices() {
       {!loading && !error && <Pagination page={page} hasNext={hasNextPage} onChange={setPage} />}
 
       {/* Create Modal */}
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="إنشاء فاتورة جديدة" onConfirm={handleCreateSubmit} confirmText="إصدار الفاتورة" size="modal-xl">
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="إنشاء فاتورة جديدة" onConfirm={handleCreateSubmit} confirmText={submitting ? 'جاري الإصدار...' : 'إصدار الفاتورة'} confirmDisabled={submitting} size="modal-xl">
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
             <div className="md:col-span-2">
@@ -672,7 +700,7 @@ export default function Invoices() {
       </Modal>
 
       {/* Refund Modal */}
-      <Modal isOpen={isRefundOpen} onClose={() => setIsRefundOpen(false)} title={`إرجاع من فاتورة رقم ${currentInvoice?._id?.slice(-8) || ''}`} onConfirm={handleRefundSubmit} confirmText="معالجة الإرجاع" confirmClass="btn-warning">
+      <Modal isOpen={isRefundOpen} onClose={() => setIsRefundOpen(false)} title={`إرجاع من فاتورة رقم ${currentInvoice?._id?.slice(-8) || ''}`} onConfirm={handleRefundSubmit} confirmText={submitting ? 'جاري المعالجة...' : 'معالجة الإرجاع'} confirmDisabled={submitting} confirmClass="btn-warning">
         <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-amber-700 text-xs font-bold shadow-sm">
           ⚠️ تنبيه: الإرجاع يخفض إجمالي الفاتورة. إذا كانت الفاتورة مدفوعة بالكامل، قد يرفض السيرفر الإرجاع بسبب اختلاف في حساب المبالغ.
         </div>
@@ -702,7 +730,7 @@ export default function Invoices() {
       </Modal>
 
       {/* Delete Modal */}
-      <Modal isOpen={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} title="حذف فاتورة" onConfirm={handleDelete} confirmText="حذف الفاتورة" confirmClass="btn-danger">
+      <Modal isOpen={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} title="حذف فاتورة" onConfirm={handleDelete} confirmText={submitting ? 'جاري الحذف...' : 'حذف الفاتورة'} confirmDisabled={submitting} confirmClass="btn-danger">
         <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-red-700 text-sm font-bold shadow-sm">
           <span className="text-xl mb-2 block">⚠️</span>
           سيؤدي هذا إلى حذف الفاتورة نهائياً، واستعادة مخزون المنتجات المباعة، وتعديل رصيد العميل إذا كانت الفاتورة آجلة.

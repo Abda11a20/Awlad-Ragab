@@ -92,21 +92,29 @@ export default function Products() {
       return toast.error('يرجى تعبئة الحقول الإجبارية');
     }
 
+    const finalUnitsPerBox = parseInt(formData.unitsPerBox);
+
     const payload = {
       name: formData.name,
       description: formData.description || undefined,
       unitPrice: parseFloat(formData.unitPrice),
-      unitsPerBox: parseInt(formData.unitsPerBox),
+      unitsPerBox: finalUnitsPerBox,
       retailPrice: parseFloat(formData.retailPrice) || 0,
-      boxesInStock: parseInt(formData.stockBoxes || 0),
     };
 
     if (currentId) {
+      // عند التعديل: نحسب boxesInStock من stock الحالي عشان الباك ميرستش المخزون
+      const originalProduct = products.find(p => p._id === currentId);
+      if (originalProduct) {
+        payload.boxesInStock = originalProduct.stock / finalUnitsPerBox;
+      }
       const { data, error } = await productsAPI.update(currentId, payload);
       if (error) return toast.error(error);
       updateProduct(currentId, data.data);
       toast.success('تم التعديل بنجاح');
     } else {
+      // عند الإنشاء: نستخدم القيمة من الفورم
+      payload.boxesInStock = parseInt(formData.stockBoxes || 0);
       const { data, error } = await productsAPI.create(payload);
       if (error) return toast.error(error);
       addProduct(data.data);
@@ -315,10 +323,12 @@ export default function Products() {
             <label className={labelCls}>سعر التجزئة</label>
             <input type="number" className={inputCls} value={formData.retailPrice} onChange={e => setFormData({ ...formData, retailPrice: e.target.value })} placeholder="0.00" />
           </div>
-          <div>
-            <label className={labelCls}>المخزون (عدد العلب)</label>
-            <input type="number" className={inputCls} value={formData.stockBoxes} onChange={e => setFormData({ ...formData, stockBoxes: e.target.value })} placeholder="0" />
-          </div>
+          {!currentId && (
+            <div>
+              <label className={labelCls}>المخزون (عدد العلب)</label>
+              <input type="number" className={inputCls} value={formData.stockBoxes} onChange={e => setFormData({ ...formData, stockBoxes: e.target.value })} placeholder="0" />
+            </div>
+          )}
         </div>
       </Modal>
 

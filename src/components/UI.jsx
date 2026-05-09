@@ -192,7 +192,7 @@ export function ErrorState({ msg = 'حدث خطأ ما', onRetry }) {
   );
 }
 
-export function Modal({ isOpen, onClose, title, children, onConfirm, confirmText = 'تأكيد', confirmClass = 'btn-primary', size = '' }) {
+export function Modal({ isOpen, onClose, title, children, onConfirm, confirmText = 'تأكيد', confirmClass = 'btn-primary', confirmDisabled = false, size = '' }) {
   if (!isOpen) return null;
 
   const sizeMap = { 'modal-lg': 'max-w-2xl', 'modal-xl': 'max-w-4xl', '': 'max-w-lg' };
@@ -218,7 +218,7 @@ export function Modal({ isOpen, onClose, title, children, onConfirm, confirmText
         </div>
         {onConfirm && (
           <div className="flex items-center gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl justify-start">
-            <button onClick={onConfirm} className={`px-5 py-2 rounded-xl font-bold text-sm shadow-sm transition-all ${btnCls[confirmClass] || btnCls['btn-primary']}`}>
+            <button onClick={onConfirm} disabled={confirmDisabled} className={`px-5 py-2 rounded-xl font-bold text-sm shadow-sm transition-all ${btnCls[confirmClass] || btnCls['btn-primary']} ${confirmDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
               {confirmText}
             </button>
             <button onClick={onClose} className="px-5 py-2 rounded-xl font-bold text-sm bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 shadow-sm transition-all">
