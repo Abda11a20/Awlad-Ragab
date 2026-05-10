@@ -1,3 +1,11 @@
+/**
+ * @file Login.jsx
+ * @description Authentication page component.
+ *              Provides a login form for users to enter their code and password.
+ *              On successful authentication, it persists the token via Zustand store
+ *              and redirects the user to the Dashboard.
+ */
+
 import { useState } from 'react';
 import { authAPI } from '../api';
 import useStore from '../store';

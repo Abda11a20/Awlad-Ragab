@@ -1,3 +1,10 @@
+/**
+ * @file InvoicePrintTemplate.jsx
+ * @description A React component used as a template for printing invoices via react-to-print.
+ *              This is typically used as a fallback or alternative to the raw HTML printing.
+ *              It includes the company header, customer details, items table, and totals.
+ */
+
 import React, { forwardRef } from 'react';
 import { formatCurrency, formatDateTime } from '../utils/format';
 

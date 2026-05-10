@@ -1,3 +1,17 @@
+/**
+ * @file index.css
+ * @description Global styles for the Mazen WMS application.
+ *
+ * Sections:
+ *   1. Tailwind CSS layers (base, components, utilities)
+ *   2. Loading skeleton shimmer animation
+ *   3. Badge pulse animation for low-stock alerts
+ *   4. Sidebar responsive offset
+ *   5. Custom scrollbar styling
+ *   6. Mobile / PWA enhancements (safe areas, scroll behavior)
+ *   7. Print media query overrides
+ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

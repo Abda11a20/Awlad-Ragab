@@ -1,3 +1,18 @@
+/**
+ * @file App.jsx
+ * @description Root application component. Handles top-level routing,
+ *              authentication guards, theme initialization, and toast notifications.
+ *
+ * Route structure:
+ *   /login       → Public login page
+ *   /*           → Protected layout (requires authentication)
+ *     /dashboard       → Sales & inventory analytics
+ *     /products        → Product CRUD & stock management
+ *     /customers       → Customer CRUD & credit tracking
+ *     /customers/:id   → Single customer detail view
+ *     /invoices        → Invoice creation, refund, payment collection
+ */
+
 import { useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
@@ -10,6 +25,10 @@ import Customers from './pages/Customers';
 import CustomerDetails from './pages/CustomerDetails';
 import Invoices from './pages/Invoices';
 
+/**
+ * ProtectedLayout — wrapper for authenticated pages.
+ * Renders the sidebar navigation alongside the active route content.
+ */
 function ProtectedLayout() {
   return (
     <div className="min-h-screen flex">
@@ -28,6 +47,11 @@ function ProtectedLayout() {
   );
 }
 
+/**
+ * App — root component.
+ * Initializes the theme from localStorage on mount and sets up
+ * authentication-based route guards.
+ */
 export default function App() {
   const { isLoggedIn, initTheme } = useStore();
 

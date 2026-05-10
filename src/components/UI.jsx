@@ -1,3 +1,19 @@
+/**
+ * @file UI.jsx
+ * @description Collection of reusable UI components and styling utilities.
+ * 
+ * Components included:
+ * - SearchableSelect: A combobox with live filtering and keyboard support.
+ * - SkeletonTable / SkeletonCards: Loading placeholders.
+ * - EmptyState / ErrorState: Fallback UI states.
+ * - Modal: Reusable modal dialog with customizable actions.
+ * - Pagination: Page navigation controls.
+ * 
+ * Constants included:
+ * - inputCls, labelCls: Shared Tailwind classes for forms.
+ * - badgeCls: Shared Tailwind classes for status badges.
+ */
+
 import { X, ChevronDown, Check, Search } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 

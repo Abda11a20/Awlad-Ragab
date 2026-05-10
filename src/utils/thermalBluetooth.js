@@ -1,7 +1,10 @@
 /**
- * thermalBluetooth.js — Web Bluetooth direct printing for ESC/POS thermal printers.
- * Designed for Xprinter XP-P802A (80mm, BLE).
- * Renders Arabic receipt as bitmap image and sends to printer.
+ * @file thermalBluetooth.js
+ * @description Web Bluetooth (BLE) direct printing for ESC/POS thermal printers.
+ *              Specifically designed for Xprinter XP-P802A (80mm).
+ *              This module renders an Arabic receipt to an HTML canvas, 
+ *              converts it to a monochrome bitmap, and sends it directly
+ *              to the printer via Bluetooth GATT characteristics.
  */
 
 // ─── Printer State ───

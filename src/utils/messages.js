@@ -1,6 +1,20 @@
 /**
- * ترجمة رسائل الباك إند من الإنجليزية إلى العربية
+ * @file messages.js
+ * @description English → Arabic translation layer for backend API responses.
+ *
+ * The backend returns error/success messages in English. This module provides
+ * a dictionary-based translation utility so the frontend can display
+ * user-friendly Arabic messages in toasts and error states.
+ *
+ * Translation strategy:
+ *   1. Exact match lookup
+ *   2. Partial/substring match (for dynamic messages like "No products found with name: X")
+ *   3. Joi validation pattern detection (messages starting with '"fieldName" is ...')
+ *   4. Pass-through if no translation found
  */
+
+/* ── Translation Dictionary ──────────────────────────────────── */
+
 const translations = {
   // Product
   'Product already exist': 'المنتج موجود بالفعل',
@@ -51,7 +65,7 @@ const translations = {
   'No invoices found for this payment method': 'لا توجد فواتير لطريقة الدفع هذه',
   'No invoices found with this status': 'لا توجد فواتير بهذه الحالة',
 
-  // User / Auth
+  // Auth
   'User already exist': 'المستخدم موجود بالفعل',
   'User not found': 'المستخدم غير موجود',
   'Invalid code or password': 'الكود أو كلمة المرور غير صحيحة',
@@ -59,32 +73,37 @@ const translations = {
   'token not provided': 'يجب تسجيل الدخول أولاً',
   'invalid token': 'جلسة منتهية — يرجى تسجيل الدخول مرة أخرى',
 
-  // Validation
+  // Validation (generic)
   'is not allowed': 'غير مسموح',
   'is required': 'مطلوب',
 };
 
+/* ── Public API ───────────────────────────────────────────────── */
+
 /**
- * ترجمة رسالة من الإنجليزية إلى العربية
- * يبحث عن تطابق كامل أولاً، ثم تطابق جزئي
+ * Translate a backend message from English to Arabic.
+ *
+ * @param {string} msg - The original English message from the API.
+ * @returns {string} The Arabic translation, or the original message if no match.
  */
 export function translateMessage(msg) {
   if (!msg || typeof msg !== 'string') return msg;
 
-  // تطابق كامل
+  // 1. Exact match
   if (translations[msg]) return translations[msg];
 
-  // تطابق جزئي (مثل "No products found with name: X")
+  // 2. Partial / substring match
   for (const [en, ar] of Object.entries(translations)) {
     if (msg.includes(en)) {
       return msg.replace(en, ar);
     }
   }
 
-  // رسائل Joi validation بالإنجليزية
+  // 3. Joi validation messages (e.g., '"name" is required')
   if (msg.startsWith('"') && msg.includes('" is')) {
     return 'خطأ في البيانات المدخلة: ' + msg;
   }
 
+  // 4. Pass-through — return as-is
   return msg;
 }

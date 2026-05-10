@@ -1,3 +1,10 @@
+/**
+ * @file Settings.jsx
+ * @description Application settings and utilities page.
+ *              Provides options to toggle the theme, clear the local cache,
+ *              test API connectivity, view system information, and log out.
+ */
+
 import { useState } from 'react';
 import useStore from '../store';
 import toast from 'react-hot-toast';

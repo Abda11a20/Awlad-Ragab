@@ -1,3 +1,11 @@
+/**
+ * @file CustomerDetails.jsx
+ * @description Detailed view for a specific customer.
+ *              Displays basic customer information, financial status (balance, credit limit),
+ *              and a paginated history of all invoices associated with the customer.
+ *              Includes invoice printing and viewing capabilities.
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { customersAPI, invoicesAPI } from '../api';

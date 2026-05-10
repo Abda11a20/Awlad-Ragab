@@ -1,3 +1,12 @@
+/**
+ * @file Invoices.jsx
+ * @description Core invoice management module.
+ *              Handles the creation, viewing, printing, and refunding of invoices.
+ *              Integrates closely with both the Product (inventory check) and
+ *              Customer (credit check) modules. Features complex state management
+ *              for item selection and asynchronous double-submit protections.
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { invoicesAPI, productsAPI, customersAPI, default as http } from '../api';
 import useStore from '../store';
@@ -436,7 +445,7 @@ export default function Invoices() {
                     <button onClick={() => downloadPDF(inv)} className="text-slate-600 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="طباعة / PDF">
                       <Printer className="w-4 h-4" />
                     </button>
-                    <button onClick={() => openRefund(inv)} className="text-slate-600 hover:text-amber-700 hover:bg-amber-50 p-2 rounded-lg transition-colors" title="إرجاع">
+                    <button onClick={() => openRefund(inv)} className="text-slate-600 hover:text-amber-700 hover:bg-amber-50 p-2 rounded-lg transition-colors" title="إرجاع" style={{ display: 'none' }}>
                       <Undo2 className="w-4 h-4" />
                     </button>
                     {inv.dueAmount > 0 && (
@@ -498,7 +507,7 @@ export default function Invoices() {
                         <button onClick={() => downloadPDF(inv)} className="text-slate-800 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="طباعة / PDF">
                           <Printer className="w-4 h-4" />
                         </button>
-                        <button onClick={() => openRefund(inv)} className="text-slate-800 hover:text-amber-700 hover:bg-amber-50 p-2 rounded-lg transition-colors" title="إرجاع (Refund)">
+                        <button onClick={() => openRefund(inv)} className="text-slate-800 hover:text-amber-700 hover:bg-amber-50 p-2 rounded-lg transition-colors" title="إرجاع (Refund)" style={{ display: 'none' }}>
                           <Undo2 className="w-4 h-4" />
                         </button>
                         {inv.dueAmount > 0 && (

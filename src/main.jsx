@@ -1,3 +1,9 @@
+/**
+ * @file main.jsx
+ * @description Application entry point. Mounts the root React component
+ *              inside StrictMode for development-time warnings and checks.
+ */
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';

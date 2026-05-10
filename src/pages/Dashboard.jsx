@@ -1,3 +1,11 @@
+/**
+ * @file Dashboard.jsx
+ * @description Main application dashboard.
+ *              Displays key performance indicators (KPIs), sales analytics,
+ *              and low stock alerts. Utilizes caching to prevent redundant API calls
+ *              on subsequent visits.
+ */
+
 import { useState, useEffect } from 'react';
 import { dashboardAPI } from '../api';
 import useStore from '../store';

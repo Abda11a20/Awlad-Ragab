@@ -1,3 +1,10 @@
+/**
+ * @file Sidebar.jsx
+ * @description Main navigation sidebar component.
+ *              Handles desktop and mobile responsive layouts, navigation links,
+ *              and iOS/Android PWA (Progressive Web App) installation prompts.
+ */
+
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Package, Users, FileText, Menu, X, Download, Smartphone } from 'lucide-react';

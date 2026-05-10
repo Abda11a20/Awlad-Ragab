@@ -1,3 +1,12 @@
+/**
+ * @file Products.jsx
+ * @description Product management module.
+ *              Handles CRUD operations for the inventory. Features include:
+ *              - Server-side paginated list with real-time search.
+ *              - Product creation and editing.
+ *              - Stock adjustments (Add / Remove) with unit conversion (Boxes vs. Units).
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { productsAPI } from '../api';
 import useStore from '../store';

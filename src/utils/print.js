@@ -1,6 +1,12 @@
 /**
- * printInvoice — opens a new window with the invoice content and triggers print.
- * No dependency on react-to-print, Tailwind, or any external library.
+ * @file print.js
+ * @description Utilities for generating and printing invoices via a hidden iframe.
+ *              This approach avoids dependencies like react-to-print and ensures
+ *              pixel-perfect printing by injecting raw HTML directly.
+ *
+ * Methods:
+ * - printInvoice: Prints a standard A4/Letter size invoice.
+ * - printThermalInvoice: Prints an 80mm thermal receipt format.
  */
 export function printInvoice(invoice) {
   if (!invoice) return;

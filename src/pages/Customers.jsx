@@ -1,3 +1,12 @@
+/**
+ * @file Customers.jsx
+ * @description Customer management module.
+ *              Handles CRUD operations for customer records. Features include:
+ *              - Server-side paginated list with real-time search.
+ *              - Customer creation and editing with credit limit validation.
+ *              - Visual indicators for credit utilization and account status.
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { customersAPI } from '../api';
 import useStore from '../store';
