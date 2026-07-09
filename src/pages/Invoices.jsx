@@ -13,7 +13,7 @@ import useStore from '../store';
 import toast from 'react-hot-toast';
 import { SkeletonTable, EmptyState, ErrorState, Modal, Pagination, SearchableSelect, inputCls, labelCls, badgeCls } from '../components/UI';
 import { formatCurrency, formatDateTime } from '../utils/format';
-import { Plus, Trash2, Undo2, FileText as FileTextIcon, Eye, Printer, Bluetooth, Banknote } from 'lucide-react';
+import { Plus, Trash2, Undo2, FileText as FileTextIcon, Eye, Printer, Bluetooth, Banknote, ArrowUpDown } from 'lucide-react';
 import { printInvoice, printThermalInvoice } from '../utils/print';
 import { isBleSupported, isConnected as isBleConnected, printThermalDirect, connectPrinter, getDeviceName, shareInvoiceToRawBT } from '../utils/thermalBluetooth';
 
@@ -67,35 +67,57 @@ export default function Invoices() {
   // Prevent double submit
   const [submitting, setSubmitting] = useState(false);
 
+  // Sorting state (desc: newest to oldest, asc: oldest to newest)
+  const [sortOrder, setSortOrder] = useState('desc');
+
 
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    let q = [`page=${page}`, `limit=${PER_PAGE}`];
-    if (filterStatus) q.push(`status=${filterStatus}`);
-    if (filterMethod) q.push(`paymentMethod=${filterMethod}`);
-    const qs = '?' + q.join('&');
+    let allInvoices = [];
+    let pg = 1;
+    let more = true;
+    const LIMIT = 100;
 
-    const { data, error: apiError } = await invoicesAPI.getAll(qs);
-    // 404 means "no invoices found" — treat as empty, not an error
-    if (apiError && data === null) {
-      setInvoices([]);
-    } else if (apiError) {
-      setError(apiError);
-    } else {
-      setInvoices(data?.data || []);
+    while (more && pg <= 50) {
+      let q = [`page=${pg}`, `limit=${LIMIT}`];
+      if (filterStatus) q.push(`status=${filterStatus}`);
+      if (filterMethod) q.push(`paymentMethod=${filterMethod}`);
+      const qs = '?' + q.join('&');
+
+      const { data, error: apiError } = await invoicesAPI.getAll(qs);
+      
+      if (apiError && data === null) {
+        if (pg === 1) setInvoices([]);
+        more = false;
+      } else if (apiError) {
+        if (pg === 1) setError(apiError);
+        more = false;
+      } else {
+        const fetched = data?.data || [];
+        allInvoices = [...allInvoices, ...fetched];
+        more = fetched.length > 0 && (fetched.length === LIMIT || fetched.length === 10);
+        pg++;
+      }
     }
+    setInvoices(allInvoices);
     setLoading(false);
-  }, [filterStatus, filterMethod, page, setInvoices]);
+  }, [filterStatus, filterMethod, setInvoices]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // No need to slice anymore as the backend handles pagination
-  const currentItems = invoices || [];
-  const hasNextPage = currentItems.length === PER_PAGE;
+  // Client-side pagination of the sorted invoices
+  const rawItems = invoices || [];
+  const sortedItems = [...rawItems].sort((a, b) => {
+    const dateA = new Date(a.createdAt);
+    const dateB = new Date(b.createdAt);
+    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+  });
+  const currentItems = sortedItems.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const hasNextPage = sortedItems.length > page * PER_PAGE;
 
   const openCreate = async () => {
     // Load ALL products by paginating through every page (backend returns 10 per page)
@@ -382,18 +404,22 @@ export default function Invoices() {
       </div>
 
       <div className="mb-6 flex flex-wrap gap-3">
-        <select value={filterStatus} onChange={e => {setFilterStatus(e.target.value); setPage(1);}} className="bg-white border border-slate-300 text-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 min-w-[150px] shadow-sm">
+        <select value={filterStatus} onChange={e => {setFilterStatus(e.target.value); setPage(1);}} className="bg-white border border-slate-300 text-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 min-w-[150px] shadow-sm w-full sm:w-auto">
           <option value="">جميع الحالات</option>
           <option value="paid">مدفوعة</option>
           <option value="partial">جزئية</option>
           <option value="unpaid">غير مدفوعة</option>
         </select>
-        <select value={filterMethod} onChange={e => {setFilterMethod(e.target.value); setPage(1);}} className="bg-white border border-slate-300 text-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 min-w-[150px] shadow-sm">
+        <select value={filterMethod} onChange={e => {setFilterMethod(e.target.value); setPage(1);}} className="bg-white border border-slate-300 text-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500 min-w-[150px] shadow-sm w-full sm:w-auto">
           <option value="">جميع الطرق</option>
           <option value="cash">كاش</option>
           <option value="credit">آجل</option>
         </select>
-        <button onClick={() => {setFilterStatus(''); setFilterMethod(''); setPage(1);}} className="bg-white hover:bg-slate-50 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 transition-colors shadow-sm">
+        <button onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')} className="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 transition-colors shadow-sm flex items-center gap-2 justify-center w-full sm:w-auto">
+          <ArrowUpDown className="w-4 h-4 text-slate-500" />
+          <span>ترتيب: {sortOrder === 'desc' ? 'الأحدث أولاً' : 'الأقدم أولاً'}</span>
+        </button>
+        <button onClick={() => {setFilterStatus(''); setFilterMethod(''); setPage(1);}} className="bg-white hover:bg-slate-50 text-slate-600 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 transition-colors shadow-sm w-full sm:w-auto">
           مسح التصفية
         </button>
       </div>
